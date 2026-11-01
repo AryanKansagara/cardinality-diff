@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { Button, IconButton } from 'material/react'
+import { Button, IconButton } from './ui.tsx'
 import { icon } from './icons.ts'
 import { AmbientBackground, ThemeControls } from './ThemeChrome.tsx'
 
@@ -35,13 +35,13 @@ export function Landing(props: LandingProps) {
     <div className="landing">
       <AmbientBackground />
       <header className="topbar land-top">
-        <div className="brand">
-          <span className="logo" aria-hidden dangerouslySetInnerHTML={{ __html: icon.monitoring }} />
+        <a className="brand" href="/">
+          <BrandMark />
           <div>
             <strong>{name}</strong>
             <span className="muted tagline">{tagline}</span>
           </div>
-        </div>
+        </a>
         <div className="row">
           <Button variant="outlined" onClick={() => go(tryHref)}>Try this</Button>
           <ThemeControls />
@@ -51,7 +51,7 @@ export function Landing(props: LandingProps) {
       <section className="land-hero">
         <div className="land-hero-copy">
           <p className="land-kicker">{name}</p>
-          <h1>{headline}</h1>
+          <h1>{emphasize(headline)}</h1>
           <p className="land-support">{support}</p>
           <div className="row land-cta">
             <Button variant="filled" icon={icon.play} onClick={() => go(tryHref)}>Try this</Button>
@@ -179,4 +179,13 @@ export function MockList({ items }: { items: { badge: string; text: string; tone
       ))}
     </ul>
   )
+}
+
+export function BrandMark() {
+  return <span className="logo" aria-hidden>CD</span>
+}
+
+/** `*words*` in a headline render in the brand highlight colour. */
+function emphasize(text: string) {
+  return text.split('*').map((part, i) => (i % 2 ? <em key={i}>{part}</em> : part))
 }

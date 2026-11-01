@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { Button } from 'material/react'
+import { Button } from './ui.tsx'
 import { icon } from './icons.ts'
 
 export function usePath() {

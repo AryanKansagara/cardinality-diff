@@ -1,26 +1,17 @@
 <!doctype html>
-<html lang="en" data-brand="grafana" data-theme="brand">
+<html lang="en" data-brand="grafana" data-theme="brand" data-default-mode="light">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Cardinality Diff</title>
     <meta name="description" content="Prometheus cardinality & cost analyzer" />
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%23f46800'/></svg>" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%23ff671d'/></svg>" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet" />
     <script>
-      (function () {
-        var brand = 'grafana'
-        var themes = ['brand','expressive','vibrant','ocean','sunset','forest']
-        var theme = localStorage.getItem('cd:colorTheme')
-        if (themes.indexOf(theme) < 0) theme = 'brand'
-        var mode = localStorage.getItem('cd:themeMode')
-        if (mode !== 'light' && mode !== 'dark') mode = 'dark'
-        document.documentElement.dataset.brand = brand
-        document.documentElement.dataset.theme = theme
-        document.documentElement.dataset.themeMode = mode
-      })()
+      var m = localStorage.getItem('themeMode')
+      document.documentElement.dataset.themeMode = m === 'light' || m === 'dark' ? m : 'light'
     </script>
   </head>
   <body>

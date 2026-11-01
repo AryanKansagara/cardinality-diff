@@ -8,7 +8,7 @@ function ProductLanding() {
       name="Cardinality Diff"
       icon="ssid_chart"
       tagline="Prometheus cardinality & cost analyzer"
-      headline="See the series explosion before it hits your bill"
+      headline="See the series explosion *before it hits your bill*"
       support="Diff two /metrics scrapes or audit a single scrape. Estimate Grafana Cloud series cost and flag risky label combinations."
       audience="For platform and observability engineers reviewing Prometheus changes."
       features={[

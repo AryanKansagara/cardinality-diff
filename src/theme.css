@@ -532,9 +532,8 @@ section { margin: 20px 0; }
 }
 /* ---- Cardinality Diff ---- */
 /* ---- Cardinality Diff ---- */
-[data-theme-mode='dark'] .btn:not(.ghost) { color: #1c0d04; }
 .btn.sm { padding: 4px 10px; font-size: 13px; font-weight: 500; }
-label.btn { display: inline-block; }
+label.btn { display: inline-flex; }
 .spread { justify-content: space-between; }
 .small { font-size: 13px; }
 .r { text-align: right; white-space: nowrap; }
