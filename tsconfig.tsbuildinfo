@@ -1,1 +1,1 @@
-{"root":["./src/app.tsx","./src/shell.tsx","./src/core.js","./src/core.test.js","./src/main.tsx","./action/index.js"],"version":"5.9.3"}
+{"root":["./src/app.tsx","./src/landing.tsx","./src/shell.tsx","./src/tool.tsx","./src/core.js","./src/core.test.js","./src/main.tsx","./src/router.tsx","./action/index.js"],"version":"5.9.3"}
