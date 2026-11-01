@@ -1,4 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
+import { Button, IconButton } from 'material/react'
+import { icon } from './icons.ts'
+import { AmbientBackground, ThemeControls } from './ThemeChrome.tsx'
 
 export type Slide = { title: string; caption: string; preview: ReactNode }
 export type LandingProps = {
@@ -13,20 +16,8 @@ export type LandingProps = {
   tryHref?: string
 }
 
-function useTheme() {
-  const [theme, setTheme] = useState(document.documentElement.dataset.theme ?? 'light')
-  const toggle = () => {
-    const next = theme === 'dark' ? 'light' : 'dark'
-    document.documentElement.dataset.theme = next
-    localStorage.setItem('theme', next)
-    setTheme(next)
-  }
-  return { theme, toggle }
-}
-
 export function Landing(props: LandingProps) {
-  const { name, icon, tagline, headline, support, audience, features, slides, tryHref = '/app' } = props
-  const { theme, toggle } = useTheme()
+  const { name, tagline, headline, support, audience, features, slides, tryHref = '/app' } = props
   const [i, setI] = useState(0)
 
   useEffect(() => {
@@ -42,23 +33,18 @@ export function Landing(props: LandingProps) {
 
   return (
     <div className="landing">
+      <AmbientBackground />
       <header className="topbar land-top">
         <div className="brand">
-          <span className="logo" aria-hidden>
-            <span className="material-symbols-outlined">{icon}</span>
-          </span>
+          <span className="logo" aria-hidden dangerouslySetInnerHTML={{ __html: icon.monitoring }} />
           <div>
             <strong>{name}</strong>
             <span className="muted tagline">{tagline}</span>
           </div>
         </div>
         <div className="row">
-          <button className="btn ghost sm" onClick={() => go(tryHref)}>
-            Try this
-          </button>
-          <button className="theme-toggle" onClick={toggle} aria-label="Toggle theme">
-            <span className="material-symbols-outlined">{theme === 'dark' ? 'light_mode' : 'dark_mode'}</span>
-          </button>
+          <Button variant="outlined" onClick={() => go(tryHref)}>Try this</Button>
+          <ThemeControls />
         </div>
       </header>
 
@@ -68,13 +54,10 @@ export function Landing(props: LandingProps) {
           <h1>{headline}</h1>
           <p className="land-support">{support}</p>
           <div className="row land-cta">
-            <button className="btn" onClick={() => go(tryHref)}>
-              <span className="material-symbols-outlined">play_arrow</span>
-              Try this
-            </button>
-            <button className="btn ghost" onClick={() => document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth' })}>
+            <Button variant="filled" icon={icon.play} onClick={() => go(tryHref)}>Try this</Button>
+            <Button variant="outlined" onClick={() => document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth' })}>
               See how it works
-            </button>
+            </Button>
           </div>
           <p className="muted land-audience">{audience}</p>
         </div>
@@ -97,13 +80,17 @@ export function Landing(props: LandingProps) {
             </div>
           </div>
           <div className="carousel-controls">
-            <button className="btn ghost sm" aria-label="Previous" onClick={() => setI((n) => (n - 1 + slides.length) % slides.length)}>
-              <span className="material-symbols-outlined">chevron_left</span>
-            </button>
+            <IconButton
+              variant="outlined"
+              icon={icon.chevronLeft}
+              aria-label="Previous"
+              onClick={() => setI((n) => (n - 1 + slides.length) % slides.length)}
+            />
             <div className="carousel-dots" role="tablist" aria-label="Slides">
               {slides.map((s, n) => (
                 <button
                   key={s.title}
+                  type="button"
                   role="tab"
                   aria-selected={n === i}
                   aria-label={s.title}
@@ -112,9 +99,12 @@ export function Landing(props: LandingProps) {
                 />
               ))}
             </div>
-            <button className="btn ghost sm" aria-label="Next" onClick={() => setI((n) => (n + 1) % slides.length)}>
-              <span className="material-symbols-outlined">chevron_right</span>
-            </button>
+            <IconButton
+              variant="outlined"
+              icon={icon.chevronRight}
+              aria-label="Next"
+              onClick={() => setI((n) => (n + 1) % slides.length)}
+            />
           </div>
         </div>
       </section>
@@ -124,7 +114,6 @@ export function Landing(props: LandingProps) {
         <div className="land-features">
           {features.map((f) => (
             <div key={f.title} className="land-feature">
-              <span className="material-symbols-outlined">{f.icon}</span>
               <h3>{f.title}</h3>
               <p className="muted">{f.body}</p>
             </div>
@@ -135,10 +124,7 @@ export function Landing(props: LandingProps) {
       <section className="land-section land-final">
         <h2>Ready to try {name}?</h2>
         <p className="muted">Open the live product — no account, no install.</p>
-        <button className="btn" onClick={() => go(tryHref)}>
-          <span className="material-symbols-outlined">play_arrow</span>
-          Try this
-        </button>
+        <Button variant="filled" icon={icon.play} onClick={() => go(tryHref)}>Try this</Button>
       </section>
 
       <footer className="container footer muted">
@@ -148,7 +134,6 @@ export function Landing(props: LandingProps) {
   )
 }
 
-/** Mini UI frames used as landing “screenshots”. */
 export function MockFrame({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="mock">

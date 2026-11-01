@@ -1,4 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
+import { Button } from 'material/react'
+import { icon } from './icons.ts'
 
 export function usePath() {
   const [path, setPath] = useState(() => location.pathname)
@@ -17,10 +19,11 @@ export function go(href: string) {
 
 export function BackToHome({ label = 'Back to home' }: { label?: string }) {
   return (
-    <button className="tool-back" onClick={() => go('/')}>
-      <span className="material-symbols-outlined" style={{ fontSize: 18 }}>arrow_back</span>
-      {label}
-    </button>
+    <div className="tool-back-wrap">
+      <Button variant="text" icon={icon.arrowBack} onClick={() => go('/')}>
+        {label}
+      </Button>
+    </div>
   )
 }
 
