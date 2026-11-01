@@ -1,0 +1,33 @@
+name: Cardinality Diff
+description: Comment on pull requests with the Prometheus active-series and cost impact of metric changes, and flag unbounded labels.
+author: Aryan Kansagara
+branding:
+  icon: bar-chart-2
+  color: orange
+inputs:
+  base:
+    description: Path to the /metrics scrape from the base branch.
+    required: true
+  head:
+    description: Path to the /metrics scrape from the pull request head.
+    required: true
+  multiplier:
+    description: Number of scraped targets (pods, replicas, instances) that expose these metrics.
+    default: '1'
+  price-per-1k:
+    description: USD per 1,000 active series per month (Grafana Cloud Pro list price is 6.50).
+    default: '6.5'
+  fail-above:
+    description: Fail the step when the per-target series delta exceeds this number. Empty disables.
+    default: ''
+  github-token:
+    description: Token used to create or update the pull request comment.
+    default: ${{ github.token }}
+outputs:
+  series-delta:
+    description: Change in active series per target (head minus base).
+  cost-delta:
+    description: Change in estimated monthly cost in USD (series delta x multiplier x price).
+runs:
+  using: node20
+  main: action/index.js

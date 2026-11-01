@@ -1,0 +1,188 @@
+# HELP go_gc_duration_seconds A summary of the wall-time pause (stop-the-world) duration in garbage collection cycles.
+# TYPE go_gc_duration_seconds summary
+go_gc_duration_seconds{quantile="0"} 2.3708e-05
+go_gc_duration_seconds{quantile="0.25"} 4.1334e-05
+go_gc_duration_seconds{quantile="0.5"} 5.6125e-05
+go_gc_duration_seconds{quantile="0.75"} 8.9167e-05
+go_gc_duration_seconds{quantile="1"} 0.000837209
+go_gc_duration_seconds_sum 0.018734125
+go_gc_duration_seconds_count 241
+# HELP go_goroutines Number of goroutines that currently exist.
+# TYPE go_goroutines gauge
+go_goroutines 47
+# HELP go_info Information about the Go environment.
+# TYPE go_info gauge
+go_info{version="go1.23.4"} 1
+# HELP go_memstats_alloc_bytes Number of bytes allocated in heap and currently in use. Equals to /memory/classes/heap/objects:bytes.
+# TYPE go_memstats_alloc_bytes gauge
+go_memstats_alloc_bytes 8.421376e+06
+# HELP go_memstats_alloc_bytes_total Total number of bytes allocated in heap until now, even if released already. Equals to /gc/heap/allocs:bytes.
+# TYPE go_memstats_alloc_bytes_total counter
+go_memstats_alloc_bytes_total 1.893562744e+09
+# HELP go_memstats_heap_inuse_bytes Number of heap bytes that are in use. Equals to /memory/classes/heap/objects:bytes + /memory/classes/heap/unused:bytes
+# TYPE go_memstats_heap_inuse_bytes gauge
+go_memstats_heap_inuse_bytes 1.0510336e+07
+# HELP go_memstats_heap_objects Number of currently allocated objects. Equals to /gc/heap/objects:objects.
+# TYPE go_memstats_heap_objects gauge
+go_memstats_heap_objects 38211
+# HELP go_memstats_last_gc_time_seconds Number of seconds since 1970 of last garbage collection.
+# TYPE go_memstats_last_gc_time_seconds gauge
+go_memstats_last_gc_time_seconds 1.7302014735218534e+09
+# HELP go_memstats_sys_bytes Number of bytes obtained from system. Equals to /memory/classes/total:byte.
+# TYPE go_memstats_sys_bytes gauge
+go_memstats_sys_bytes 2.4466448e+07
+# HELP go_sched_gomaxprocs_threads The current runtime.GOMAXPROCS setting, or the number of operating system threads that can execute user-level Go code simultaneously. Sourced from /sched/gomaxprocs:threads.
+# TYPE go_sched_gomaxprocs_threads gauge
+go_sched_gomaxprocs_threads 4
+# HELP go_threads Number of OS threads created.
+# TYPE go_threads gauge
+go_threads 11
+# HELP process_cpu_seconds_total Total user and system CPU time spent in seconds.
+# TYPE process_cpu_seconds_total counter
+process_cpu_seconds_total 42.37
+# HELP process_max_fds Maximum number of open file descriptors.
+# TYPE process_max_fds gauge
+process_max_fds 1.048576e+06
+# HELP process_network_receive_bytes_total Number of bytes received by the process over the network.
+# TYPE process_network_receive_bytes_total counter
+process_network_receive_bytes_total 2.8391274e+07
+# HELP process_network_transmit_bytes_total Number of bytes sent by the process over the network.
+# TYPE process_network_transmit_bytes_total counter
+process_network_transmit_bytes_total 9.1735821e+07
+# HELP process_open_fds Number of open file descriptors.
+# TYPE process_open_fds gauge
+process_open_fds 23
+# HELP process_resident_memory_bytes Resident memory size in bytes.
+# TYPE process_resident_memory_bytes gauge
+process_resident_memory_bytes 3.4357248e+07
+# HELP process_start_time_seconds Start time of the process since unix epoch in seconds.
+# TYPE process_start_time_seconds gauge
+process_start_time_seconds 1.73019823412e+09
+# HELP process_virtual_memory_bytes Virtual memory size in bytes.
+# TYPE process_virtual_memory_bytes gauge
+process_virtual_memory_bytes 1.272066048e+09
+# HELP promhttp_metric_handler_requests_in_flight Current number of scrapes being served.
+# TYPE promhttp_metric_handler_requests_in_flight gauge
+promhttp_metric_handler_requests_in_flight 1
+# HELP promhttp_metric_handler_requests_total Total number of scrapes by HTTP status code.
+# TYPE promhttp_metric_handler_requests_total counter
+promhttp_metric_handler_requests_total{code="200"} 1712
+promhttp_metric_handler_requests_total{code="500"} 0
+promhttp_metric_handler_requests_total{code="503"} 0
+# HELP http_request_duration_seconds Duration of HTTP requests in seconds.
+# TYPE http_request_duration_seconds histogram
+http_request_duration_seconds_bucket{code="200",le="0.005",method="GET",route="/api/users/{id}"} 4
+http_request_duration_seconds_bucket{code="200",le="0.01",method="GET",route="/api/users/{id}"} 5
+http_request_duration_seconds_bucket{code="200",le="0.025",method="GET",route="/api/users/{id}"} 6
+http_request_duration_seconds_bucket{code="200",le="0.05",method="GET",route="/api/users/{id}"} 9
+http_request_duration_seconds_bucket{code="200",le="0.1",method="GET",route="/api/users/{id}"} 11
+http_request_duration_seconds_bucket{code="200",le="0.25",method="GET",route="/api/users/{id}"} 12
+http_request_duration_seconds_bucket{code="200",le="0.5",method="GET",route="/api/users/{id}"} 15
+http_request_duration_seconds_bucket{code="200",le="1",method="GET",route="/api/users/{id}"} 18
+http_request_duration_seconds_bucket{code="200",le="2.5",method="GET",route="/api/users/{id}"} 20
+http_request_duration_seconds_bucket{code="200",le="5",method="GET",route="/api/users/{id}"} 20
+http_request_duration_seconds_bucket{code="200",le="10",method="GET",route="/api/users/{id}"} 20
+http_request_duration_seconds_bucket{code="200",le="+Inf",method="GET",route="/api/users/{id}"} 20
+http_request_duration_seconds_sum{code="200",method="GET",route="/api/users/{id}"} 3.667030
+http_request_duration_seconds_count{code="200",method="GET",route="/api/users/{id}"} 20
+http_request_duration_seconds_bucket{code="404",le="0.005",method="GET",route="/api/users/{id}"} 69
+http_request_duration_seconds_bucket{code="404",le="0.01",method="GET",route="/api/users/{id}"} 201
+http_request_duration_seconds_bucket{code="404",le="0.025",method="GET",route="/api/users/{id}"} 331
+http_request_duration_seconds_bucket{code="404",le="0.05",method="GET",route="/api/users/{id}"} 341
+http_request_duration_seconds_bucket{code="404",le="0.1",method="GET",route="/api/users/{id}"} 468
+http_request_duration_seconds_bucket{code="404",le="0.25",method="GET",route="/api/users/{id}"} 555
+http_request_duration_seconds_bucket{code="404",le="0.5",method="GET",route="/api/users/{id}"} 727
+http_request_duration_seconds_bucket{code="404",le="1",method="GET",route="/api/users/{id}"} 746
+http_request_duration_seconds_bucket{code="404",le="2.5",method="GET",route="/api/users/{id}"} 746
+http_request_duration_seconds_bucket{code="404",le="5",method="GET",route="/api/users/{id}"} 746
+http_request_duration_seconds_bucket{code="404",le="10",method="GET",route="/api/users/{id}"} 746
+http_request_duration_seconds_bucket{code="404",le="+Inf",method="GET",route="/api/users/{id}"} 746
+http_request_duration_seconds_sum{code="404",method="GET",route="/api/users/{id}"} 117.644415
+http_request_duration_seconds_count{code="404",method="GET",route="/api/users/{id}"} 746
+http_request_duration_seconds_bucket{code="200",le="0.005",method="GET",route="/api/products/{id}"} 281
+http_request_duration_seconds_bucket{code="200",le="0.01",method="GET",route="/api/products/{id}"} 725
+http_request_duration_seconds_bucket{code="200",le="0.025",method="GET",route="/api/products/{id}"} 1168
+http_request_duration_seconds_bucket{code="200",le="0.05",method="GET",route="/api/products/{id}"} 1349
+http_request_duration_seconds_bucket{code="200",le="0.1",method="GET",route="/api/products/{id}"} 1512
+http_request_duration_seconds_bucket{code="200",le="0.25",method="GET",route="/api/products/{id}"} 1920
+http_request_duration_seconds_bucket{code="200",le="0.5",method="GET",route="/api/products/{id}"} 1951
+http_request_duration_seconds_bucket{code="200",le="1",method="GET",route="/api/products/{id}"} 1951
+http_request_duration_seconds_bucket{code="200",le="2.5",method="GET",route="/api/products/{id}"} 1951
+http_request_duration_seconds_bucket{code="200",le="5",method="GET",route="/api/products/{id}"} 1951
+http_request_duration_seconds_bucket{code="200",le="10",method="GET",route="/api/products/{id}"} 1951
+http_request_duration_seconds_bucket{code="200",le="+Inf",method="GET",route="/api/products/{id}"} 1951
+http_request_duration_seconds_sum{code="200",method="GET",route="/api/products/{id}"} 404.739515
+http_request_duration_seconds_count{code="200",method="GET",route="/api/products/{id}"} 1951
+http_request_duration_seconds_bucket{code="200",le="0.005",method="GET",route="/api/products"} 308
+http_request_duration_seconds_bucket{code="200",le="0.01",method="GET",route="/api/products"} 679
+http_request_duration_seconds_bucket{code="200",le="0.025",method="GET",route="/api/products"} 703
+http_request_duration_seconds_bucket{code="200",le="0.05",method="GET",route="/api/products"} 818
+http_request_duration_seconds_bucket{code="200",le="0.1",method="GET",route="/api/products"} 1055
+http_request_duration_seconds_bucket{code="200",le="0.25",method="GET",route="/api/products"} 1270
+http_request_duration_seconds_bucket{code="200",le="0.5",method="GET",route="/api/products"} 1448
+http_request_duration_seconds_bucket{code="200",le="1",method="GET",route="/api/products"} 1529
+http_request_duration_seconds_bucket{code="200",le="2.5",method="GET",route="/api/products"} 1692
+http_request_duration_seconds_bucket{code="200",le="5",method="GET",route="/api/products"} 1692
+http_request_duration_seconds_bucket{code="200",le="10",method="GET",route="/api/products"} 1692
+http_request_duration_seconds_bucket{code="200",le="+Inf",method="GET",route="/api/products"} 1692
+http_request_duration_seconds_sum{code="200",method="GET",route="/api/products"} 150.291005
+http_request_duration_seconds_count{code="200",method="GET",route="/api/products"} 1692
+http_request_duration_seconds_bucket{code="201",le="0.005",method="POST",route="/api/orders"} 465
+http_request_duration_seconds_bucket{code="201",le="0.01",method="POST",route="/api/orders"} 724
+http_request_duration_seconds_bucket{code="201",le="0.025",method="POST",route="/api/orders"} 807
+http_request_duration_seconds_bucket{code="201",le="0.05",method="POST",route="/api/orders"} 1011
+http_request_duration_seconds_bucket{code="201",le="0.1",method="POST",route="/api/orders"} 1153
+http_request_duration_seconds_bucket{code="201",le="0.25",method="POST",route="/api/orders"} 1336
+http_request_duration_seconds_bucket{code="201",le="0.5",method="POST",route="/api/orders"} 1549
+http_request_duration_seconds_bucket{code="201",le="1",method="POST",route="/api/orders"} 1716
+http_request_duration_seconds_bucket{code="201",le="2.5",method="POST",route="/api/orders"} 1983
+http_request_duration_seconds_bucket{code="201",le="5",method="POST",route="/api/orders"} 2013
+http_request_duration_seconds_bucket{code="201",le="10",method="POST",route="/api/orders"} 2013
+http_request_duration_seconds_bucket{code="201",le="+Inf",method="POST",route="/api/orders"} 2013
+http_request_duration_seconds_sum{code="201",method="POST",route="/api/orders"} 405.214800
+http_request_duration_seconds_count{code="201",method="POST",route="/api/orders"} 2013
+http_request_duration_seconds_bucket{code="400",le="0.005",method="POST",route="/api/orders"} 300
+http_request_duration_seconds_bucket{code="400",le="0.01",method="POST",route="/api/orders"} 521
+http_request_duration_seconds_bucket{code="400",le="0.025",method="POST",route="/api/orders"} 741
+http_request_duration_seconds_bucket{code="400",le="0.05",method="POST",route="/api/orders"} 920
+http_request_duration_seconds_bucket{code="400",le="0.1",method="POST",route="/api/orders"} 1095
+http_request_duration_seconds_bucket{code="400",le="0.25",method="POST",route="/api/orders"} 1334
+http_request_duration_seconds_bucket{code="400",le="0.5",method="POST",route="/api/orders"} 1393
+http_request_duration_seconds_bucket{code="400",le="1",method="POST",route="/api/orders"} 1393
+http_request_duration_seconds_bucket{code="400",le="2.5",method="POST",route="/api/orders"} 1393
+http_request_duration_seconds_bucket{code="400",le="5",method="POST",route="/api/orders"} 1393
+http_request_duration_seconds_bucket{code="400",le="10",method="POST",route="/api/orders"} 1393
+http_request_duration_seconds_bucket{code="400",le="+Inf",method="POST",route="/api/orders"} 1393
+http_request_duration_seconds_sum{code="400",method="POST",route="/api/orders"} 125.533785
+http_request_duration_seconds_count{code="400",method="POST",route="/api/orders"} 1393
+http_request_duration_seconds_bucket{code="200",le="0.005",method="GET",route="/api/orders/{id}"} 98
+http_request_duration_seconds_bucket{code="200",le="0.01",method="GET",route="/api/orders/{id}"} 298
+http_request_duration_seconds_bucket{code="200",le="0.025",method="GET",route="/api/orders/{id}"} 519
+http_request_duration_seconds_bucket{code="200",le="0.05",method="GET",route="/api/orders/{id}"} 547
+http_request_duration_seconds_bucket{code="200",le="0.1",method="GET",route="/api/orders/{id}"} 754
+http_request_duration_seconds_bucket{code="200",le="0.25",method="GET",route="/api/orders/{id}"} 773
+http_request_duration_seconds_bucket{code="200",le="0.5",method="GET",route="/api/orders/{id}"} 875
+http_request_duration_seconds_bucket{code="200",le="1",method="GET",route="/api/orders/{id}"} 913
+http_request_duration_seconds_bucket{code="200",le="2.5",method="GET",route="/api/orders/{id}"} 932
+http_request_duration_seconds_bucket{code="200",le="5",method="GET",route="/api/orders/{id}"} 1011
+http_request_duration_seconds_bucket{code="200",le="10",method="GET",route="/api/orders/{id}"} 1011
+http_request_duration_seconds_bucket{code="200",le="+Inf",method="GET",route="/api/orders/{id}"} 1011
+http_request_duration_seconds_sum{code="200",method="GET",route="/api/orders/{id}"} 148.084031
+http_request_duration_seconds_count{code="200",method="GET",route="/api/orders/{id}"} 1011
+http_request_duration_seconds_bucket{code="200",le="0.005",method="GET",route="/healthz"} 51
+http_request_duration_seconds_bucket{code="200",le="0.01",method="GET",route="/healthz"} 117
+http_request_duration_seconds_bucket{code="200",le="0.025",method="GET",route="/healthz"} 132
+http_request_duration_seconds_bucket{code="200",le="0.05",method="GET",route="/healthz"} 236
+http_request_duration_seconds_bucket{code="200",le="0.1",method="GET",route="/healthz"} 335
+http_request_duration_seconds_bucket{code="200",le="0.25",method="GET",route="/healthz"} 435
+http_request_duration_seconds_bucket{code="200",le="0.5",method="GET",route="/healthz"} 452
+http_request_duration_seconds_bucket{code="200",le="1",method="GET",route="/healthz"} 452
+http_request_duration_seconds_bucket{code="200",le="2.5",method="GET",route="/healthz"} 452
+http_request_duration_seconds_bucket{code="200",le="5",method="GET",route="/healthz"} 452
+http_request_duration_seconds_bucket{code="200",le="10",method="GET",route="/healthz"} 452
+http_request_duration_seconds_bucket{code="200",le="+Inf",method="GET",route="/healthz"} 452
+http_request_duration_seconds_sum{code="200",method="GET",route="/healthz"} 31.485771
+http_request_duration_seconds_count{code="200",method="GET",route="/healthz"} 452
+# HELP http_requests_in_flight Current number of HTTP requests being served.
+# TYPE http_requests_in_flight gauge
+http_requests_in_flight 3
