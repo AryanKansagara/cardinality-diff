@@ -1,251 +1,341 @@
-/* Company brand schemes — activated with data-theme="brand" */
+/*
+  Company website skins for data-theme="brand".
+  Colors / surfaces taken from each official marketing site.
+  Fonts use free stand-ins where the brand face is proprietary.
+*/
 
-/* Temporal — indigo + neon accents */
+/* ========== MongoDB (mongodb.com) ========== */
+[data-brand='mongodb'][data-theme='brand'] {
+  --brand-font: Inter, system-ui, sans-serif;
+  --brand-display: 'Source Serif 4', Georgia, serif;
+  --brand-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --mtrl-sys-color-primary: #00684a;
+  --mtrl-sys-color-on-primary: #ffffff;
+  --mtrl-sys-color-primary-container: #e9ff99;
+  --mtrl-sys-color-on-primary-container: #023430;
+  --mtrl-sys-color-secondary: #21313a;
+  --mtrl-sys-color-on-secondary: #ffffff;
+  --mtrl-sys-color-secondary-container: #d0d4cf;
+  --mtrl-sys-color-on-secondary-container: #061621;
+  --mtrl-sys-color-tertiary: #00ed64;
+  --mtrl-sys-color-on-tertiary: #023430;
+  --mtrl-sys-color-tertiary-container: #b1ff05;
+  --mtrl-sys-color-on-tertiary-container: #014e3d;
+  --mtrl-sys-color-surface: #fdfff5;
+  --mtrl-sys-color-on-surface: #001e2b;
+  --mtrl-sys-color-on-surface-variant: #404f54;
+  --mtrl-sys-color-surface-container-lowest: #ffffff;
+  --mtrl-sys-color-surface-container-low: #f4ffdc;
+  --mtrl-sys-color-surface-container: #f1f5eb;
+  --mtrl-sys-color-surface-container-high: #e4e8e0;
+  --mtrl-sys-color-surface-container-highest: #d0d4cf;
+  --mtrl-sys-color-outline: #616c6d;
+  --mtrl-sys-color-outline-variant: #d0d4cf;
+}
+[data-brand='mongodb'][data-theme='brand'][data-theme-mode='dark'] {
+  --mtrl-sys-color-primary: #00ed64;
+  --mtrl-sys-color-on-primary: #023430;
+  --mtrl-sys-color-primary-container: #00684a;
+  --mtrl-sys-color-on-primary-container: #e9ff99;
+  --mtrl-sys-color-secondary: #9ea2a1;
+  --mtrl-sys-color-on-secondary: #061621;
+  --mtrl-sys-color-secondary-container: #21313a;
+  --mtrl-sys-color-on-secondary-container: #d0d4cf;
+  --mtrl-sys-color-tertiary: #b1ff05;
+  --mtrl-sys-color-on-tertiary: #014e3d;
+  --mtrl-sys-color-tertiary-container: #0ad05b;
+  --mtrl-sys-color-on-tertiary-container: #023430;
+  --mtrl-sys-color-surface: #001e2b;
+  --mtrl-sys-color-on-surface: #e4e8e0;
+  --mtrl-sys-color-on-surface-variant: #9ea2a1;
+  --mtrl-sys-color-surface-container-lowest: #00141d;
+  --mtrl-sys-color-surface-container-low: #061621;
+  --mtrl-sys-color-surface-container: #0c1f2a;
+  --mtrl-sys-color-surface-container-high: #21313a;
+  --mtrl-sys-color-surface-container-highest: #2a3a44;
+  --mtrl-sys-color-outline: #616c6d;
+  --mtrl-sys-color-outline-variant: #21313a;
+}
+
+/* ========== Temporal (temporal.io) ========== */
 [data-brand='temporal'][data-theme='brand'] {
+  --brand-font: Inter, system-ui, sans-serif;
+  --brand-display: Inter, system-ui, sans-serif;
+  --brand-mono: 'JetBrains Mono', ui-monospace, monospace;
   --mtrl-sys-color-primary: #444ce7;
   --mtrl-sys-color-on-primary: #ffffff;
   --mtrl-sys-color-primary-container: #e0e0ff;
-  --mtrl-sys-color-on-primary-container: #00006e;
-  --mtrl-sys-color-secondary: #5b5fc7;
-  --mtrl-sys-color-on-secondary: #ffffff;
-  --mtrl-sys-color-secondary-container: #e2dfff;
-  --mtrl-sys-color-on-secondary-container: #171a71;
-  --mtrl-sys-color-tertiary: #9a3dff;
-  --mtrl-sys-color-on-tertiary: #ffffff;
-  --mtrl-sys-color-tertiary-container: #f0dbff;
-  --mtrl-sys-color-on-tertiary-container: #2e004f;
-  --mtrl-sys-color-surface: #f7f6ff;
-  --mtrl-sys-color-on-surface: #1a1b23;
-  --mtrl-sys-color-on-surface-variant: #46464f;
+  --mtrl-sys-color-on-primary-container: #141414;
+  --mtrl-sys-color-secondary: #b664ff;
+  --mtrl-sys-color-on-secondary: #141414;
+  --mtrl-sys-color-secondary-container: #f3e8ff;
+  --mtrl-sys-color-on-secondary-container: #2a0845;
+  --mtrl-sys-color-tertiary: #c3ff62;
+  --mtrl-sys-color-on-tertiary: #141414;
+  --mtrl-sys-color-tertiary-container: #eaffc2;
+  --mtrl-sys-color-on-tertiary-container: #1a2e00;
+  --mtrl-sys-color-surface: #f7f7f8;
+  --mtrl-sys-color-on-surface: #141414;
+  --mtrl-sys-color-on-surface-variant: #52525b;
   --mtrl-sys-color-surface-container-lowest: #ffffff;
-  --mtrl-sys-color-surface-container-low: #f1f0ff;
-  --mtrl-sys-color-surface-container: #ebeaf8;
-  --mtrl-sys-color-surface-container-high: #e5e4f2;
-  --mtrl-sys-color-surface-container-highest: #dfdeeC;
-  --mtrl-sys-color-outline: #777680;
-  --mtrl-sys-color-outline-variant: #c7c5d0;
+  --mtrl-sys-color-surface-container-low: #f0f0f3;
+  --mtrl-sys-color-surface-container: #eaeaef;
+  --mtrl-sys-color-surface-container-high: #e4e4e9;
+  --mtrl-sys-color-surface-container-highest: #dedee3;
+  --mtrl-sys-color-outline: #71717a;
+  --mtrl-sys-color-outline-variant: #d4d4d8;
 }
 [data-brand='temporal'][data-theme='brand'][data-theme-mode='dark'] {
   --mtrl-sys-color-primary: #c0c1ff;
-  --mtrl-sys-color-on-primary: #0f1178;
-  --mtrl-sys-color-primary-container: #2b2eb5;
-  --mtrl-sys-color-on-primary-container: #e0e0ff;
-  --mtrl-sys-color-secondary: #c2c1ff;
-  --mtrl-sys-color-on-secondary: #2a2b7a;
-  --mtrl-sys-color-secondary-container: #4144a3;
-  --mtrl-sys-color-on-secondary-container: #e2dfff;
-  --mtrl-sys-color-tertiary: #dfb7ff;
-  --mtrl-sys-color-on-tertiary: #4b007d;
-  --mtrl-sys-color-tertiary-container: #6b00b0;
-  --mtrl-sys-color-on-tertiary-container: #f0dbff;
-  --mtrl-sys-color-surface: #12121a;
-  --mtrl-sys-color-on-surface: #e4e1ec;
-  --mtrl-sys-color-on-surface-variant: #c7c5d0;
-  --mtrl-sys-color-surface-container-lowest: #0c0c12;
-  --mtrl-sys-color-surface-container-low: #1a1b23;
-  --mtrl-sys-color-surface-container: #1e1f28;
-  --mtrl-sys-color-surface-container-high: #292933;
-  --mtrl-sys-color-surface-container-highest: #34343e;
-  --mtrl-sys-color-outline: #91909a;
-  --mtrl-sys-color-outline-variant: #46464f;
+  --mtrl-sys-color-on-primary: #141414;
+  --mtrl-sys-color-primary-container: #444ce7;
+  --mtrl-sys-color-on-primary-container: #ffffff;
+  --mtrl-sys-color-secondary: #ff6bff;
+  --mtrl-sys-color-on-secondary: #141414;
+  --mtrl-sys-color-secondary-container: #6b21a8;
+  --mtrl-sys-color-on-secondary-container: #f5d0fe;
+  --mtrl-sys-color-tertiary: #c3ff62;
+  --mtrl-sys-color-on-tertiary: #141414;
+  --mtrl-sys-color-tertiary-container: #3f6212;
+  --mtrl-sys-color-on-tertiary-container: #ecfccb;
+  --mtrl-sys-color-surface: #141414;
+  --mtrl-sys-color-on-surface: #f4f4f5;
+  --mtrl-sys-color-on-surface-variant: #a1a1aa;
+  --mtrl-sys-color-surface-container-lowest: #0a0a0a;
+  --mtrl-sys-color-surface-container-low: #18181b;
+  --mtrl-sys-color-surface-container: #1f1f23;
+  --mtrl-sys-color-surface-container-high: #27272a;
+  --mtrl-sys-color-surface-container-highest: #3f3f46;
+  --mtrl-sys-color-outline: #71717a;
+  --mtrl-sys-color-outline-variant: #3f3f46;
 }
 
-/* Grafana — orange on graphite */
+/* ========== Grafana (grafana.com) ========== */
 [data-brand='grafana'][data-theme='brand'] {
-  --mtrl-sys-color-primary: #f46800;
+  --brand-font: Inter, system-ui, sans-serif;
+  --brand-display: Inter, system-ui, sans-serif;
+  --brand-mono: 'Roboto Mono', ui-monospace, monospace;
+  --mtrl-sys-color-primary: #ff671d;
   --mtrl-sys-color-on-primary: #ffffff;
   --mtrl-sys-color-primary-container: #ffdbcc;
-  --mtrl-sys-color-on-primary-container: #351000;
-  --mtrl-sys-color-secondary: #3d4b5f;
-  --mtrl-sys-color-on-secondary: #ffffff;
-  --mtrl-sys-color-secondary-container: #d5e3f7;
-  --mtrl-sys-color-on-secondary-container: #0c1a2b;
-  --mtrl-sys-color-tertiary: #ff9830;
-  --mtrl-sys-color-on-tertiary: #3a1a00;
-  --mtrl-sys-color-tertiary-container: #ffdcb8;
-  --mtrl-sys-color-on-tertiary-container: #2c1600;
-  --mtrl-sys-color-surface: #f8f7f4;
-  --mtrl-sys-color-on-surface: #1c1b19;
-  --mtrl-sys-color-on-surface-variant: #52443c;
+  --mtrl-sys-color-on-primary-container: #3a1400;
+  --mtrl-sys-color-secondary: #3fc6eb;
+  --mtrl-sys-color-on-secondary: #003445;
+  --mtrl-sys-color-secondary-container: #d1e3f7;
+  --mtrl-sys-color-on-secondary-container: #0b1c2c;
+  --mtrl-sys-color-tertiary: #fbe136;
+  --mtrl-sys-color-on-tertiary: #2c2400;
+  --mtrl-sys-color-tertiary-container: #fff3a8;
+  --mtrl-sys-color-on-tertiary-container: #2c2400;
+  --mtrl-sys-color-surface: #f4f5f5;
+  --mtrl-sys-color-on-surface: #111217;
+  --mtrl-sys-color-on-surface-variant: #454554;
   --mtrl-sys-color-surface-container-lowest: #ffffff;
-  --mtrl-sys-color-surface-container-low: #f3f0eb;
-  --mtrl-sys-color-surface-container: #ece9e3;
-  --mtrl-sys-color-surface-container-high: #e6e3dd;
-  --mtrl-sys-color-surface-container-highest: #e0ddd7;
-  --mtrl-sys-color-outline: #85736a;
-  --mtrl-sys-color-outline-variant: #d7c3b8;
+  --mtrl-sys-color-surface-container-low: #eceef0;
+  --mtrl-sys-color-surface-container: #e4e6e9;
+  --mtrl-sys-color-surface-container-high: #dcdfe3;
+  --mtrl-sys-color-surface-container-highest: #d0d5db;
+  --mtrl-sys-color-outline: #67677e;
+  --mtrl-sys-color-outline-variant: #c5c8d0;
 }
 [data-brand='grafana'][data-theme='brand'][data-theme-mode='dark'] {
-  --mtrl-sys-color-primary: #ffb68a;
-  --mtrl-sys-color-on-primary: #552100;
-  --mtrl-sys-color-primary-container: #b84a00;
-  --mtrl-sys-color-on-primary-container: #ffdbcc;
-  --mtrl-sys-color-secondary: #b9c7db;
-  --mtrl-sys-color-on-secondary: #233144;
-  --mtrl-sys-color-secondary-container: #3a485c;
-  --mtrl-sys-color-on-secondary-container: #d5e3f7;
-  --mtrl-sys-color-tertiary: #ffb870;
-  --mtrl-sys-color-on-tertiary: #4a2800;
-  --mtrl-sys-color-tertiary-container: #6b3c00;
-  --mtrl-sys-color-on-tertiary-container: #ffdcb8;
-  --mtrl-sys-color-surface: #111217;
-  --mtrl-sys-color-on-surface: #e4e2e0;
-  --mtrl-sys-color-on-surface-variant: #d7c3b8;
-  --mtrl-sys-color-surface-container-lowest: #0b0c10;
-  --mtrl-sys-color-surface-container-low: #1c1b19;
-  --mtrl-sys-color-surface-container: #201f1d;
-  --mtrl-sys-color-surface-container-high: #2a2927;
-  --mtrl-sys-color-surface-container-highest: #353431;
-  --mtrl-sys-color-outline: #9f8d83;
-  --mtrl-sys-color-outline-variant: #52443c;
-}
-
-/* MongoDB — forest green */
-[data-brand='mongodb'][data-theme='brand'] {
-  --mtrl-sys-color-primary: #00684a;
+  --mtrl-sys-color-primary: #ff671d;
   --mtrl-sys-color-on-primary: #ffffff;
-  --mtrl-sys-color-primary-container: #8ff5c8;
-  --mtrl-sys-color-on-primary-container: #002114;
-  --mtrl-sys-color-secondary: #4c6358;
-  --mtrl-sys-color-on-secondary: #ffffff;
-  --mtrl-sys-color-secondary-container: #cee9da;
-  --mtrl-sys-color-on-secondary-container: #092017;
-  --mtrl-sys-color-tertiary: #6b9f00;
-  --mtrl-sys-color-on-tertiary: #1a2e00;
-  --mtrl-sys-color-tertiary-container: #d4ff8a;
-  --mtrl-sys-color-on-tertiary-container: #1a2e00;
-  --mtrl-sys-color-surface: #f5fbf6;
-  --mtrl-sys-color-on-surface: #171d19;
-  --mtrl-sys-color-on-surface-variant: #404943;
-  --mtrl-sys-color-surface-container-lowest: #ffffff;
-  --mtrl-sys-color-surface-container-low: #eff6f0;
-  --mtrl-sys-color-surface-container: #e9f0ea;
-  --mtrl-sys-color-surface-container-high: #e3ebe4;
-  --mtrl-sys-color-surface-container-highest: #dde5de;
-  --mtrl-sys-color-outline: #707973;
-  --mtrl-sys-color-outline-variant: #bfc9c1;
-}
-[data-brand='mongodb'][data-theme='brand'][data-theme-mode='dark'] {
-  --mtrl-sys-color-primary: #72d8ad;
-  --mtrl-sys-color-on-primary: #003825;
-  --mtrl-sys-color-primary-container: #005137;
-  --mtrl-sys-color-on-primary-container: #8ff5c8;
-  --mtrl-sys-color-secondary: #b3ccbe;
-  --mtrl-sys-color-on-secondary: #1e352b;
-  --mtrl-sys-color-secondary-container: #354b41;
-  --mtrl-sys-color-on-secondary-container: #cee9da;
-  --mtrl-sys-color-tertiary: #b8e45c;
-  --mtrl-sys-color-on-tertiary: #2c4000;
-  --mtrl-sys-color-tertiary-container: #425c00;
-  --mtrl-sys-color-on-tertiary-container: #d4ff8a;
-  --mtrl-sys-color-surface: #0b1510;
-  --mtrl-sys-color-on-surface: #dde5de;
-  --mtrl-sys-color-on-surface-variant: #bfc9c1;
-  --mtrl-sys-color-surface-container-lowest: #06100b;
-  --mtrl-sys-color-surface-container-low: #171d19;
-  --mtrl-sys-color-surface-container: #1b211d;
-  --mtrl-sys-color-surface-container-high: #252b27;
-  --mtrl-sys-color-surface-container-highest: #303632;
-  --mtrl-sys-color-outline: #8a938c;
-  --mtrl-sys-color-outline-variant: #404943;
+  --mtrl-sys-color-primary-container: #8a3200;
+  --mtrl-sys-color-on-primary-container: #ffdbcc;
+  --mtrl-sys-color-secondary: #3fc6eb;
+  --mtrl-sys-color-on-secondary: #003445;
+  --mtrl-sys-color-secondary-container: #1a4558;
+  --mtrl-sys-color-on-secondary-container: #d1e3f7;
+  --mtrl-sys-color-tertiary: #fbe136;
+  --mtrl-sys-color-on-tertiary: #2c2400;
+  --mtrl-sys-color-tertiary-container: #5c4f00;
+  --mtrl-sys-color-on-tertiary-container: #fff3a8;
+  --mtrl-sys-color-surface: #111217;
+  --mtrl-sys-color-on-surface: #e8eaed;
+  --mtrl-sys-color-on-surface-variant: #a0a3b1;
+  --mtrl-sys-color-surface-container-lowest: #0b0c10;
+  --mtrl-sys-color-surface-container-low: #161a1f;
+  --mtrl-sys-color-surface-container: #1d1f24;
+  --mtrl-sys-color-surface-container-high: #2b2d32;
+  --mtrl-sys-color-surface-container-highest: #3a3c42;
+  --mtrl-sys-color-outline: #67677e;
+  --mtrl-sys-color-outline-variant: #2b2d32;
 }
 
-/* Databricks — coral / brick */
+/* ========== Databricks (databricks.com) ========== */
 [data-brand='databricks'][data-theme='brand'] {
+  --brand-font: 'DM Sans', system-ui, sans-serif;
+  --brand-display: 'DM Sans', system-ui, sans-serif;
+  --brand-mono: 'DM Mono', ui-monospace, monospace;
   --mtrl-sys-color-primary: #ff3621;
   --mtrl-sys-color-on-primary: #ffffff;
   --mtrl-sys-color-primary-container: #ffdad4;
-  --mtrl-sys-color-on-primary-container: #410000;
+  --mtrl-sys-color-on-primary-container: #550b07;
   --mtrl-sys-color-secondary: #1b3139;
   --mtrl-sys-color-on-secondary: #ffffff;
-  --mtrl-sys-color-secondary-container: #d0e6ee;
-  --mtrl-sys-color-on-secondary-container: #041e26;
+  --mtrl-sys-color-secondary-container: #cddae5;
+  --mtrl-sys-color-on-secondary-container: #113239;
   --mtrl-sys-color-tertiary: #ff5f46;
   --mtrl-sys-color-on-tertiary: #ffffff;
-  --mtrl-sys-color-tertiary-container: #ffdad4;
-  --mtrl-sys-color-on-tertiary-container: #3b0904;
-  --mtrl-sys-color-surface: #f8f7f5;
-  --mtrl-sys-color-on-surface: #1c1b1a;
-  --mtrl-sys-color-on-surface-variant: #53433f;
+  --mtrl-sys-color-tertiary-container: #ffd2cb;
+  --mtrl-sys-color-on-tertiary-container: #550b07;
+  --mtrl-sys-color-surface: #f7f8f8;
+  --mtrl-sys-color-on-surface: #1b3139;
+  --mtrl-sys-color-on-surface-variant: #5a6f77;
   --mtrl-sys-color-surface-container-lowest: #ffffff;
-  --mtrl-sys-color-surface-container-low: #f3f0ed;
-  --mtrl-sys-color-surface-container: #edeae6;
-  --mtrl-sys-color-surface-container-high: #e7e4e0;
-  --mtrl-sys-color-surface-container-highest: #e1deda;
-  --mtrl-sys-color-outline: #85736e;
-  --mtrl-sys-color-outline-variant: #d8c2bc;
+  --mtrl-sys-color-surface-container-low: #eef1f2;
+  --mtrl-sys-color-surface-container: #e5eaec;
+  --mtrl-sys-color-surface-container-high: #dce3e6;
+  --mtrl-sys-color-surface-container-highest: #cddae5;
+  --mtrl-sys-color-outline: #86989e;
+  --mtrl-sys-color-outline-variant: #cddae5;
 }
 [data-brand='databricks'][data-theme='brand'][data-theme-mode='dark'] {
-  --mtrl-sys-color-primary: #ffb4a8;
-  --mtrl-sys-color-on-primary: #680100;
-  --mtrl-sys-color-primary-container: #c52212;
+  --mtrl-sys-color-primary: #ff5f46;
+  --mtrl-sys-color-on-primary: #ffffff;
+  --mtrl-sys-color-primary-container: #801c17;
   --mtrl-sys-color-on-primary-container: #ffdad4;
-  --mtrl-sys-color-secondary: #b4cad2;
-  --mtrl-sys-color-on-secondary: #1a333b;
-  --mtrl-sys-color-secondary-container: #324a52;
-  --mtrl-sys-color-on-secondary-container: #d0e6ee;
-  --mtrl-sys-color-tertiary: #ffb4a8;
-  --mtrl-sys-color-on-tertiary: #5f150c;
-  --mtrl-sys-color-tertiary-container: #8f2c20;
+  --mtrl-sys-color-secondary: #9eb6ca;
+  --mtrl-sys-color-on-secondary: #113239;
+  --mtrl-sys-color-secondary-container: #1b5162;
+  --mtrl-sys-color-on-secondary-container: #cddae5;
+  --mtrl-sys-color-tertiary: #ff8a76;
+  --mtrl-sys-color-on-tertiary: #3a0a07;
+  --mtrl-sys-color-tertiary-container: #801c17;
   --mtrl-sys-color-on-tertiary-container: #ffdad4;
-  --mtrl-sys-color-surface: #12181a;
-  --mtrl-sys-color-on-surface: #e4e2e0;
-  --mtrl-sys-color-on-surface-variant: #d8c2bc;
-  --mtrl-sys-color-surface-container-lowest: #0c1113;
-  --mtrl-sys-color-surface-container-low: #1c1b1a;
-  --mtrl-sys-color-surface-container: #201f1e;
-  --mtrl-sys-color-surface-container-high: #2a2928;
-  --mtrl-sys-color-surface-container-highest: #353433;
-  --mtrl-sys-color-outline: #a08c87;
-  --mtrl-sys-color-outline-variant: #53433f;
+  --mtrl-sys-color-surface: #1b3139;
+  --mtrl-sys-color-on-surface: #e8eef1;
+  --mtrl-sys-color-on-surface-variant: #90a5b1;
+  --mtrl-sys-color-surface-container-lowest: #113239;
+  --mtrl-sys-color-surface-container-low: #1f272d;
+  --mtrl-sys-color-surface-container: #24333a;
+  --mtrl-sys-color-surface-container-high: #2f424b;
+  --mtrl-sys-color-surface-container-highest: #3a515c;
+  --mtrl-sys-color-outline: #7f9298;
+  --mtrl-sys-color-outline-variant: #334d5c;
 }
 
-/* Stripe — blurple */
+/* ========== Stripe (stripe.com) ========== */
 [data-brand='stripe'][data-theme='brand'] {
-  --mtrl-sys-color-primary: #635bff;
+  --brand-font: Inter, system-ui, sans-serif;
+  --brand-display: Inter, system-ui, sans-serif;
+  --brand-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --mtrl-sys-color-primary: #533afd;
   --mtrl-sys-color-on-primary: #ffffff;
-  --mtrl-sys-color-primary-container: #e2dfff;
-  --mtrl-sys-color-on-primary-container: #1200a8;
+  --mtrl-sys-color-primary-container: #e7e4ff;
+  --mtrl-sys-color-on-primary-container: #0a2540;
   --mtrl-sys-color-secondary: #0a2540;
   --mtrl-sys-color-on-secondary: #ffffff;
   --mtrl-sys-color-secondary-container: #d3e4ff;
-  --mtrl-sys-color-on-secondary-container: #001c37;
+  --mtrl-sys-color-on-secondary-container: #031323;
   --mtrl-sys-color-tertiary: #00d4ff;
   --mtrl-sys-color-on-tertiary: #003641;
   --mtrl-sys-color-tertiary-container: #b8f0ff;
-  --mtrl-sys-color-on-tertiary-container: #001f26;
-  --mtrl-sys-color-surface: #f7f6ff;
-  --mtrl-sys-color-on-surface: #1b1b23;
-  --mtrl-sys-color-on-surface-variant: #47464f;
+  --mtrl-sys-color-on-tertiary-container: #012939;
+  --mtrl-sys-color-surface: #f6f9fc;
+  --mtrl-sys-color-on-surface: #0a2540;
+  --mtrl-sys-color-on-surface-variant: #425466;
   --mtrl-sys-color-surface-container-lowest: #ffffff;
-  --mtrl-sys-color-surface-container-low: #f1f0fa;
-  --mtrl-sys-color-surface-container: #ebeaf4;
-  --mtrl-sys-color-surface-container-high: #e5e4ee;
-  --mtrl-sys-color-surface-container-highest: #dfdee8;
-  --mtrl-sys-color-outline: #787680;
-  --mtrl-sys-color-outline-variant: #c8c5d0;
+  --mtrl-sys-color-surface-container-low: #eef2f7;
+  --mtrl-sys-color-surface-container: #e6edf5;
+  --mtrl-sys-color-surface-container-high: #dde6f0;
+  --mtrl-sys-color-surface-container-highest: #d3e4ff;
+  --mtrl-sys-color-outline: #6b7c8f;
+  --mtrl-sys-color-outline-variant: #c9d5e3;
 }
 [data-brand='stripe'][data-theme='brand'][data-theme-mode='dark'] {
-  --mtrl-sys-color-primary: #c3c0ff;
-  --mtrl-sys-color-on-primary: #1e00a8;
-  --mtrl-sys-color-primary-container: #4a41e6;
-  --mtrl-sys-color-on-primary-container: #e2dfff;
+  --mtrl-sys-color-primary: #7a6cff;
+  --mtrl-sys-color-on-primary: #ffffff;
+  --mtrl-sys-color-primary-container: #3b2fd0;
+  --mtrl-sys-color-on-primary-container: #e7e4ff;
   --mtrl-sys-color-secondary: #a2c9ff;
-  --mtrl-sys-color-on-secondary: #00325a;
-  --mtrl-sys-color-secondary-container: #004880;
+  --mtrl-sys-color-on-secondary: #031323;
+  --mtrl-sys-color-secondary-container: #0a2d4d;
   --mtrl-sys-color-on-secondary-container: #d3e4ff;
-  --mtrl-sys-color-tertiary: #5ad5f4;
-  --mtrl-sys-color-on-tertiary: #003641;
-  --mtrl-sys-color-tertiary-container: #004e5d;
+  --mtrl-sys-color-tertiary: #29b9bb;
+  --mtrl-sys-color-on-tertiary: #012939;
+  --mtrl-sys-color-tertiary-container: #194756;
   --mtrl-sys-color-on-tertiary-container: #b8f0ff;
-  --mtrl-sys-color-surface: #0f111a;
-  --mtrl-sys-color-on-surface: #e4e1ec;
-  --mtrl-sys-color-on-surface-variant: #c8c5d0;
-  --mtrl-sys-color-surface-container-lowest: #0a0c12;
-  --mtrl-sys-color-surface-container-low: #1b1b23;
-  --mtrl-sys-color-surface-container: #1f1f27;
-  --mtrl-sys-color-surface-container-high: #292931;
-  --mtrl-sys-color-surface-container-highest: #34343c;
-  --mtrl-sys-color-outline: #928f99;
-  --mtrl-sys-color-outline-variant: #47464f;
+  --mtrl-sys-color-surface: #0a2540;
+  --mtrl-sys-color-on-surface: #e6edf5;
+  --mtrl-sys-color-on-surface-variant: #9db0c4;
+  --mtrl-sys-color-surface-container-lowest: #031323;
+  --mtrl-sys-color-surface-container-low: #0a2d4d;
+  --mtrl-sys-color-surface-container: #113555;
+  --mtrl-sys-color-surface-container-high: #1a4064;
+  --mtrl-sys-color-surface-container-highest: #244b73;
+  --mtrl-sys-color-outline: #6b7c8f;
+  --mtrl-sys-color-outline-variant: #1a4064;
+}
+
+/* Apply brand fonts when on brand theme */
+[data-theme='brand'] body,
+[data-theme='brand'] button,
+[data-theme='brand'] input,
+[data-theme='brand'] select,
+[data-theme='brand'] textarea {
+  font-family: var(--brand-font) !important;
+}
+[data-theme='brand'] h1,
+[data-theme='brand'] h2,
+[data-theme='brand'] .land-hero h1,
+[data-theme='brand'] .hero h1 {
+  font-family: var(--brand-display) !important;
+  letter-spacing: -0.02em;
+}
+[data-theme='brand'] code,
+[data-theme='brand'] pre,
+[data-theme='brand'] .mono,
+[data-theme='brand'] textarea {
+  font-family: var(--brand-mono) !important;
+}
+
+/* Site-like ambient: softer, brand-tinted washes (not generic purple Material) */
+[data-theme='brand'] .ambient {
+  background:
+    radial-gradient(90% 70% at 10% -5%, color-mix(in srgb, var(--mtrl-sys-color-primary) 28%, transparent), transparent 55%),
+    radial-gradient(80% 60% at 95% 5%, color-mix(in srgb, var(--mtrl-sys-color-tertiary) 22%, transparent), transparent 50%),
+    radial-gradient(70% 50% at 50% 110%, color-mix(in srgb, var(--mtrl-sys-color-secondary-container) 35%, transparent), transparent 55%),
+    var(--mtrl-sys-color-surface) !important;
+}
+[data-brand='mongodb'][data-theme='brand'] .ambient-blob.a { background: #00ed64; opacity: 0.18; }
+[data-brand='mongodb'][data-theme='brand'] .ambient-blob.b { background: #b1ff05; opacity: 0.12; }
+[data-brand='mongodb'][data-theme='brand'] .ambient-blob.c { background: #00684a; opacity: 0.22; }
+
+[data-brand='temporal'][data-theme='brand'] .ambient-blob.a { background: #444ce7; opacity: 0.28; }
+[data-brand='temporal'][data-theme='brand'] .ambient-blob.b { background: #ff6bff; opacity: 0.16; }
+[data-brand='temporal'][data-theme='brand'] .ambient-blob.c { background: #c3ff62; opacity: 0.14; }
+
+[data-brand='grafana'][data-theme='brand'] .ambient-blob.a { background: #ff671d; opacity: 0.22; }
+[data-brand='grafana'][data-theme='brand'] .ambient-blob.b { background: #3fc6eb; opacity: 0.14; }
+[data-brand='grafana'][data-theme='brand'] .ambient-blob.c { background: #fbe136; opacity: 0.1; }
+
+[data-brand='databricks'][data-theme='brand'] .ambient-blob.a { background: #ff3621; opacity: 0.2; }
+[data-brand='databricks'][data-theme='brand'] .ambient-blob.b { background: #ff5f46; opacity: 0.14; }
+[data-brand='databricks'][data-theme='brand'] .ambient-blob.c { background: #1b3139; opacity: 0.35; }
+
+[data-brand='stripe'][data-theme='brand'] .ambient-blob.a { background: #533afd; opacity: 0.22; }
+[data-brand='stripe'][data-theme='brand'] .ambient-blob.b { background: #00d4ff; opacity: 0.12; }
+[data-brand='stripe'][data-theme='brand'] .ambient-blob.c { background: #0a2540; opacity: 0.25; }
+
+/* Filled buttons closer to each site CTA */
+[data-theme='brand'] m-button[variant='filled'],
+[data-theme='brand'] .btn {
+  border-radius: 8px !important;
+}
+[data-brand='stripe'][data-theme='brand'] m-button[variant='filled'],
+[data-brand='stripe'][data-theme='brand'] .btn {
+  border-radius: 999px !important;
+}
+[data-brand='mongodb'][data-theme='brand'] m-button[variant='filled'],
+[data-brand='mongodb'][data-theme='brand'] .btn {
+  border-radius: 999px !important;
+  font-weight: 600 !important;
+}
+[data-brand='grafana'][data-theme='brand'] m-button[variant='filled'] {
+  border-radius: 4px !important;
+}
+[data-brand='databricks'][data-theme='brand'] m-button[variant='filled'] {
+  border-radius: 4px !important;
 }

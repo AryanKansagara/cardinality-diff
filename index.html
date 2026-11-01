@@ -8,17 +8,16 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%23f46800'/></svg>" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet" />
     <script>
       (function () {
+        var brand = 'grafana'
         var themes = ['brand','expressive','vibrant','ocean','sunset','forest']
         var theme = localStorage.getItem('cd:colorTheme')
         if (themes.indexOf(theme) < 0) theme = 'brand'
         var mode = localStorage.getItem('cd:themeMode')
-        if (mode !== 'light' && mode !== 'dark') {
-          mode = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-        }
-        document.documentElement.dataset.brand = 'grafana'
+        if (mode !== 'light' && mode !== 'dark') mode = 'dark'
+        document.documentElement.dataset.brand = brand
         document.documentElement.dataset.theme = theme
         document.documentElement.dataset.themeMode = mode
       })()
