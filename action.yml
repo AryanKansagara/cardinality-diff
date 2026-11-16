@@ -17,6 +17,9 @@ inputs:
   price-per-1k:
     description: USD per 1,000 active series per month (Grafana Cloud Pro list price is 6.50).
     default: '6.5'
+  scrape-interval:
+    description: Scrape interval in seconds. Grafana Cloud includes 1 data point per minute per series, so 15 bills each series as 4.
+    default: '60'
   fail-above:
     description: Fail the step when the per-target series delta exceeds this number. Empty disables.
     default: ''

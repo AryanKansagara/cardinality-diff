@@ -31,8 +31,12 @@ one-line diff that looks harmless in review, and teams usually find out from the
   label, a metric-scoped `metric_relabel_configs` stop-gap you can copy, or exemplars, logs and traces for per-event detail.
 - **Projected production cardinality**: a dev scrape has 30 user IDs, production has 50,000. Enter the expected count per
   flagged label to recompute series and cost (worst case: label values are treated as independent).
-- Cost = series × scraped targets × price per 1,000 active series per month. The default of $6.50 is the
-  [Grafana Cloud Pro list price](https://grafana.com/pricing/); the first 10k series per account are free. Both are configurable.
+- Cost = series × scraped targets × DPM factor × price per 1,000 active series per month. The default of $6.50 is the
+  [Grafana Cloud Pro list price](https://grafana.com/pricing/) (checked 2026-11-16); the first 10k series per account are free.
+  Grafana Cloud bills the higher of active series and total data points per minute over the included 1 DPM
+  ([metrics invoice docs](https://grafana.com/docs/grafana-cloud/cost-management-and-billing/understand-your-invoice/metrics-invoice/)),
+  so a 15s scrape interval bills each series as 4. All three are configurable.
+- `/docs` explains the parser, the detector rules and the cost model, with sources.
 - **Copy share link** encodes the inputs into the URL hash (deflate-raw + base64url). **Copy PR comment** produces the same Markdown as the Action.
 
 ### Parser
@@ -42,6 +46,13 @@ and HELP text, trailing commas, `+Inf` / `-Inf` / `NaN`, timestamps, histogram `
 quantiles, OpenMetrics `_total` / `_created`, exemplars, `# EOF`, and Prometheus 3 quoted UTF-8 metric and label names.
 Malformed lines (duplicate series, bad escapes, missing values, unknown types, content after `# EOF`) are reported with line
 numbers and skipped; parsing continues.
+
+Several timestamped samples of one series count once, and a gauge and counter declared under one name (as Prometheus'
+own OpenMetrics output does for `go_memstats_alloc_bytes`) stay separate families.
+
+Tested against real scrapes: node_exporter's end-to-end fixture, Prometheus' own `/metrics` in OpenMetrics and the
+Prometheus parser test data, and the OpenMetrics conformance suite (all 44 valid documents parse cleanly). Trimmed
+excerpts (Apache-2.0, with sources in the test file) live in `samples/real/` and run in `npm test`.
 
 Series are counted as Prometheus stores them: every bucket, `_sum` and `_count` is its own series. OpenMetrics `_created`
 lines are parsed but not counted, since Prometheus 3 does not ingest them as series by default.
@@ -55,6 +66,7 @@ lines are parsed but not counted, since Prometheus 3 does not ingest them as ser
     head: ${{ runner.temp }}/head.prom
     multiplier: 12        # pods/replicas exposing these metrics
     price-per-1k: 6.5     # USD per 1,000 active series per month
+    scrape-interval: 15   # seconds; Grafana Cloud bills 60/interval DPM per series
     fail-above: 500       # optional: fail when the per-target series delta exceeds this
 ```
 
@@ -64,6 +76,7 @@ lines are parsed but not counted, since Prometheus 3 does not ingest them as ser
 | `head` | required | Path to the PR head scrape |
 | `multiplier` | `1` | Number of scraped targets |
 | `price-per-1k` | `6.5` | USD per 1,000 active series per month |
+| `scrape-interval` | `60` | Seconds between scrapes; below 60 multiplies cost by 60/interval |
 | `fail-above` | none | Fail the step if the series delta is above this |
 | `github-token` | `${{ github.token }}` | Needs `pull-requests: write` |
 
@@ -196,7 +209,9 @@ JSDoc types, so the React app and the Action share one implementation without a 
 
 - Counts series per scrape target. Labels added by Prometheus at scrape time (`job`, `instance`) and by relabeling are not
   visible in the scrape; account for targets with the multiplier.
-- The detector is heuristic: value shapes, label names, and distinct-to-series ratio. A dev scrape only shows the values you
+- The detector is heuristic: value shapes, label names, and distinct-to-series ratio. On a real node_exporter scrape it
+  reports hardware identity labels (filesystem UUIDs, IPVS addresses) as findings; single-value and info-metric labels are
+  downgraded to suspicious, and one label repeated across families is grouped into one finding. A dev scrape only shows the values you
   exercised, which is what the production projection is for.
 - Projection assumes flagged labels vary independently, so it is an upper bound.
 - Native histograms are not part of the text format and are not modelled.

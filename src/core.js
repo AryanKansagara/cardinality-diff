@@ -21,7 +21,8 @@
  * @typedef {{
  *   metric: string, type: string, label: string, severity: 'bad'|'warn',
  *   distinct: number, groups: number, series: number, buckets: number, isNew: boolean,
- *   kind: string|null, reasons: string[], examples: string[], suggestions: Suggestion[]
+ *   kind: string|null, reasons: string[], examples: string[], suggestions: Suggestion[],
+ *   members?: { metric: string, series: number, groups: number }[]
  * }} Risk
  */
 
@@ -130,6 +131,10 @@ export function parse(text) {
   const fams = new Map()
   const lines = text.split(/\r?\n/)
   let eof = false
+  /** @type {Map<string, string>} families whose TYPE was redeclared after samples, by base name */
+  const redeclared = new Map()
+  /** @type {Map<string, {base: string, type: string}>} family key -> its declared base name and type */
+  const aliasOf = new Map()
 
   /** @param {string} s */
   const metaName = (s) => {
@@ -142,6 +147,13 @@ export function parse(text) {
 
   /** @param {string} sample */
   const familyOf = (sample) => {
+    for (const [base, type] of redeclared) {
+      if (SUFFIXES[type].some((s) => sample === base + s)) {
+        const key = base + SUFFIXES[type][0]
+        aliasOf.set(key, { base, type })
+        return key
+      }
+    }
     if (meta.has(sample)) return sample
     for (const [type, sfx] of Object.entries(SUFFIXES)) {
       for (const s of sfx) {
@@ -168,9 +180,15 @@ export function parse(text) {
         if (m[1] === 'TYPE') {
           const t = rest.trim().toLowerCase()
           if (!TYPES.has(t)) throw `unknown metric type "${rest.trim()}"`
-          if (fams.has(n) && fams.get(n)?.keys.size) throw `TYPE for "${n}" appears after its samples`
-          entry.type = t === 'unknown' ? 'untyped' : t
-        } else if (m[1] === 'HELP') entry.help = rest.replace(/\\(\\|n)/g, (_, e) => (e === 'n' ? '\n' : '\\'))
+          const typed = t === 'unknown' ? 'untyped' : t
+          const seen = fams.get(n)
+          // Prometheus' own OpenMetrics output declares a gauge and a counter under one name
+          // (go_memstats_alloc_bytes and go_memstats_alloc_bytes_total). Accept a redeclaration whose
+          // samples use different names; the counter's samples become their own family.
+          if (seen?.keys.size && !(seen.type !== typed && SUFFIXES[typed] && !seen.sampleNames.has(n + SUFFIXES[typed][0]))) throw `TYPE for "${n}" appears after its samples`
+          if (seen?.keys.size) { redeclared.set(n, typed); meta.set(n, entry); continue }
+          entry.type = typed
+        } else if (m[1] === 'HELP' && !fams.get(n)?.keys.size) entry.help = rest.replace(/\\(\\|n)/g, (_, e) => (e === 'n' ? '\n' : '\\'))
         meta.set(n, entry)
         continue
       }
@@ -193,7 +211,8 @@ export function parse(text) {
       if (raw === '') throw 'missing sample value'
       if (parseValue(raw) === null) throw `invalid sample value "${raw}"`
       c.ws()
-      if (!c.done && c.peek() !== '#') {
+      const hasTs = !c.done && c.peek() !== '#'
+      if (hasTs) {
         const ts = c.token()
         if (parseValue(ts) === null || !isFinite(/** @type {number} */ (parseValue(ts)))) throw `invalid timestamp "${ts}"`
         c.ws()
@@ -219,11 +238,13 @@ export function parse(text) {
       const fname = familyOf(name)
       let f = fams.get(fname)
       if (!f) {
-        f = { name: fname, type: meta.get(fname)?.type ?? 'untyped', keys: new Set(), groups: new Set(), le: new Set(), created: 0, sampleNames: new Set(), labels: new Map() }
+        f = { name: fname, type: aliasOf.get(fname)?.type ?? meta.get(fname)?.type ?? 'untyped', keys: new Set(), groups: new Set(), le: new Set(), created: 0, sampleNames: new Set(), labels: new Map() }
         fams.set(fname, f)
       }
       const sorted = Object.keys(labels).sort()
       const key = name + '\0' + sorted.map((k) => k + '\0' + labels[k]).join('\0')
+      // OpenMetrics allows several timestamped samples of one series; it is still one series.
+      if (f.keys.has(key) && hasTs) continue
       if (f.keys.has(key)) throw `duplicate series ${name}{${sorted.map((k) => `${k}="${labels[k]}"`).join(',')}}`
       f.keys.add(key)
       if (f.type === 'histogram' || f.type === 'gaugehistogram') {
@@ -231,7 +252,7 @@ export function parse(text) {
         if ('le' in labels) f.le.add(labels.le)
       }
       // Prometheus 3 skips OpenMetrics `_created` series at ingest; track but don't bill them.
-      if (name === fname + '_created' && fname !== name) { f.created++; continue }
+      if (name === (aliasOf.get(fname)?.base ?? fname) + '_created' && fname !== name) { f.created++; continue }
       f.sampleNames.add(name)
       f.groups.add(sorted.filter((k) => !STRUCTURAL.has(k)).map((k) => k + '\0' + labels[k]).join('\0'))
       for (const k of sorted) {
@@ -289,13 +310,13 @@ export function diff(base, head) {
 
 // ---------- risky label detection ----------
 
-const ID_SEGMENT = /^(\d+|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|(?=[0-9a-f]*\d)[0-9a-f]{12,}|[A-Za-z0-9_-]{20,})$/i
+const ID_SEGMENT = /^(\d+|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|(?=[0-9a-f]*\d)[0-9a-f]{12,}|(?=[A-Za-z_-]*\d)[A-Za-z0-9_-]{20,})$/i
 /** @type {[string, string, (v: string) => boolean][]} kind, description, test — order matters */
 const KINDS = [
   ['uuid', 'UUIDs', (v) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v)],
   ['timestamp', 'timestamps', (v) => /^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}/.test(v) || /^1\d{9}(\d{3}|\d{6}|\d{9})?$/.test(v)],
   ['email', 'email addresses', (v) => /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(v)],
-  ['ip', 'IP addresses', (v) => /^(\d{1,3}\.){3}\d{1,3}(:\d+)?$/.test(v) || /^\[?(?=[^\]]*(::|[a-f]))[0-9a-f]{0,4}(:[0-9a-f]{0,4}){2,7}\]?(:\d+)?$/i.test(v)],
+  ['ip', 'IP addresses', (v) => /^(\d{1,3}\.){3}\d{1,3}(:\d+)?$/.test(v) || !/^([0-9a-f]{2}:){5}[0-9a-f]{2}$/i.test(v) && /^\[?(?=[^\]]*(::|[a-f]))[0-9a-f]{0,4}(:[0-9a-f]{0,4}){2,7}\]?(:\d+)?$/i.test(v)],
   ['path', 'raw URL paths containing IDs or query strings', (v) => /^(\/|[a-z][a-z0-9+.-]*:\/\/)/i.test(v) && (v.includes('?') || v.split(/[/?#]/).some((s) => ID_SEGMENT.test(s)))],
   ['hex', 'hex hashes / trace IDs', (v) => /^(0x)?(?=[0-9a-f]*\d)[0-9a-f]{12,}$/i.test(v)],
   ['number', 'long numeric IDs', (v) => /^-?\d{5,}$/.test(v)],
@@ -397,12 +418,15 @@ export function findRisks(head, base) {
       }
       if (distinct >= 10 && distinct / Math.max(f.groups, 1) >= 0.5) {
         reasons.push(`${distinct} distinct values across ${f.groups} label combinations: almost every series is unique to one value.`)
+        // A high ratio alone is common for bounded labels (route templates, collectors, devices): warn only.
         severity ??= 'warn'
-        if (distinct >= 50) severity = 'bad'
       }
       if (!severity) continue
       const bl = baseLabels.get(f.name)
       const isNew = !!base && (!bl || !bl.has(l.name))
+      // Info metrics (build_info, disk_info) carry identity labels by design, one series per entity, and a
+      // label with a single value adds no series. Neither is "likely unbounded" unless this change adds it.
+      if (severity === 'bad' && !isNew && (distinct === 1 || f.type === 'info' || /_info$/.test(f.name))) severity = 'warn'
       const grew = !!base && !!bl && (bl.get(l.name) ?? 0) < distinct
       if (base && !isNew && !grew && severity === 'warn') continue // pre-existing, unchanged, low-confidence: noise
       risks.push({
@@ -414,11 +438,34 @@ export function findRisks(head, base) {
     }
   }
   const rank = (/** @type {Risk} */ r) => (r.severity === 'bad' ? 2 : 0) + (r.isNew ? 1 : 0)
-  return risks.sort((a, b) => rank(b) - rank(a) || b.series - a.series)
+  return groupRisks(risks).sort((a, b) => rank(b) - rank(a) || b.series - a.series)
+}
+
+/**
+ * One label with the same values on many families (a filesystem uuid on 180 node_bcachefs_* metrics)
+ * is one finding, not 180. Members keep their own series counts for cost and projection.
+ * @param {Risk[]} risks @returns {Risk[]}
+ */
+function groupRisks(risks) {
+  /** @type {Map<string, Risk>} */
+  const by = new Map()
+  for (const r of risks) {
+    const key = [r.label, r.severity, r.kind, r.isNew, r.distinct, [...r.examples].sort().join('\0')].join('\u0001')
+    const g = by.get(key)
+    const m = { metric: r.metric, series: r.series, groups: r.groups }
+    if (!g) { by.set(key, { ...r, members: [m] }); continue }
+    g.members = [...(g.members ?? []), m]
+    g.series += r.series
+  }
+  return [...by.values()]
 }
 
 /** Minimum series one new label value adds: one full label combination (all buckets + _sum + _count for histograms). */
-export const seriesPerValue = (/** @type {{series: number, groups: number}} */ f) => Math.max(1, Math.round(f.series / Math.max(f.groups, 1)))
+/** @param {{series: number, groups: number, members?: {series: number, groups: number}[]}} f @returns {number} */
+export function seriesPerValue(f) {
+  const one = (/** @type {{series: number, groups: number}} */ m) => Math.max(1, Math.round(m.series / Math.max(m.groups, 1)))
+  return f.members && f.members.length > 1 ? f.members.reduce((a, m) => a + one(m), 0) : one(f)
+}
 
 /**
  * Worst-case production series when flagged labels reach `expected` distinct values.
@@ -444,8 +491,15 @@ export function project(report, expected) {
 }
 
 /** Monthly USD for `series` active series scraped from `multiplier` targets. */
-export const monthlyCost = (/** @type {number} */ series, /** @type {number} */ multiplier, /** @type {number} */ pricePer1k) =>
-  (series * multiplier * pricePer1k) / 1000
+/**
+ * Grafana Cloud bills max(active series, total DPM / included DPM). Pro includes 1 data point per minute
+ * per series, so a series scraped every 15s (4 DPM) bills as 4 series once the account average is above 1.
+ * https://grafana.com/docs/grafana-cloud/cost-management-and-billing/understand-your-invoice/metrics-invoice/
+ */
+export const dpmFactor = (/** @type {number} */ scrapeInterval) => Math.max(1, 60 / (scrapeInterval > 0 ? scrapeInterval : 60))
+
+export const monthlyCost = (/** @type {number} */ series, /** @type {number} */ multiplier, /** @type {number} */ pricePer1k, scrapeInterval = 60) =>
+  (series * multiplier * dpmFactor(scrapeInterval) * pricePer1k) / 1000
 
 export const fmt = (/** @type {number} */ n) => Math.round(n).toLocaleString('en-US')
 export const signed = (/** @type {number} */ n) => (n > 0 ? '+' : n < 0 ? '−' : '±') + fmt(Math.abs(n))
@@ -457,10 +511,10 @@ export const MARKER = '<!-- cardinality-diff -->'
 
 /**
  * Render the PR comment.
- * @param {{ diff: Diff, risks: Risk[], multiplier: number, pricePer1k: number, failAbove?: number|null, errors?: number }} o
+ * @param {{ diff: Diff, risks: Risk[], multiplier: number, pricePer1k: number, failAbove?: number|null, errors?: number, scrapeInterval?: number }} o
  */
-export function renderMarkdown({ diff: d, risks, multiplier, pricePer1k, failAbove = null, errors = 0 }) {
-  const cost = monthlyCost(d.delta, multiplier, pricePer1k)
+export function renderMarkdown({ diff: d, risks, multiplier, pricePer1k, failAbove = null, errors = 0, scrapeInterval = 60 }) {
+  const cost = monthlyCost(d.delta, multiplier, pricePer1k, scrapeInterval)
   const over = failAbove !== null && d.delta > failAbove
   const changed = d.rows.filter((r) => r.status !== 'unchanged')
   const bad = risks.filter((r) => r.severity === 'bad')
@@ -471,7 +525,8 @@ export function renderMarkdown({ diff: d, risks, multiplier, pricePer1k, failAbo
     `## ${icon} Cardinality Diff`,
     '',
     `**${signed(d.delta)} active series** per target (${fmt(d.base)} → ${fmt(d.head)}, ${pct(d.base ? (d.delta / d.base) * 100 : null)})` +
-      ` · **${usd(cost, true)}/month** at ${multiplier}× targets and $${pricePer1k.toFixed(2)}/1k series`,
+      ` · **${usd(cost, true)}/month** at ${multiplier}× targets and $${pricePer1k.toFixed(2)}/1k series` +
+      (dpmFactor(scrapeInterval) > 1 ? `, ${scrapeInterval}s scrape (${fmt(dpmFactor(scrapeInterval))} DPM)` : ''),
   ]
   if (over) lines.push('', `> [!CAUTION]\n> Series delta ${signed(d.delta)} exceeds the configured threshold of ${fmt(failAbove ?? 0)}.`)
   if (errors) lines.push('', `> [!WARNING]\n> ${errors} malformed line(s) were skipped while parsing.`)
@@ -479,14 +534,14 @@ export function renderMarkdown({ diff: d, risks, multiplier, pricePer1k, failAbo
     lines.push('', '| Metric | Type | Base | Head | Δ series | Δ $/month | Note |', '|---|---|--:|--:|--:|--:|---|')
     for (const r of changed.slice(0, 10)) {
       const note = r.status === 'added' ? 'new metric' : r.status === 'removed' ? 'removed' : r.newLabels.length ? 'new label ' + r.newLabels.map(code).join(', ') : ''
-      lines.push(`| ${code(r.name)} | ${r.type} | ${fmt(r.base)} | ${fmt(r.head)} | ${signed(r.delta)} (${pct(r.pct)}) | ${usd(monthlyCost(r.delta, multiplier, pricePer1k), true)} | ${note} |`)
+      lines.push(`| ${code(r.name)} | ${r.type} | ${fmt(r.base)} | ${fmt(r.head)} | ${signed(r.delta)} (${pct(r.pct)}) | ${usd(monthlyCost(r.delta, multiplier, pricePer1k, scrapeInterval), true)} | ${note} |`)
     }
     if (changed.length > 10) lines.push('', `<sub>${changed.length - 10} more changed metric(s) not shown.</sub>`)
   } else lines.push('', 'No metric families changed.')
   if (risks.length) {
     lines.push('', `### ⚠️ ${risks.length} risky label${risks.length > 1 ? 's' : ''}`, '')
     for (const r of risks.slice(0, 8)) {
-      lines.push(`- **${code(`${r.metric}{${r.label}}`)}**${r.isNew ? ' (new)' : ''}: ${r.distinct} values in this scrape, each new value adds ≥${fmt(seriesPerValue(r))} series. ${r.reasons[0]} _Fix: ${r.suggestions[0].title.toLowerCase()}._`)
+      lines.push(`- **${code(`${r.metric}{${r.label}}`)}**${(r.members?.length ?? 1) > 1 ? ` and ${(r.members?.length ?? 1) - 1} more metric${(r.members?.length ?? 1) > 2 ? 's' : ''}` : ''}${r.isNew ? ' (new)' : ''}: ${r.distinct} values in this scrape, each new value adds ≥${fmt(seriesPerValue(r))} series. ${r.reasons[0]} _Fix: ${r.suggestions[0].title.toLowerCase()}._`)
     }
     lines.push('', '<details><summary>Suggested fixes</summary>', '')
     for (const r of risks.slice(0, 8)) {
@@ -503,7 +558,7 @@ export function renderMarkdown({ diff: d, risks, multiplier, pricePer1k, failAbo
     for (const r of changed) lines.push(`| ${code(r.name)} | ${fmt(r.base)} | ${fmt(r.head)} | ${signed(r.delta)} |`)
     lines.push('', '</details>')
   }
-  lines.push('', `<sub>Estimate = series × ${multiplier} target(s) × $${pricePer1k.toFixed(2)} per 1,000 active series/month. Grafana Cloud includes 10k series free per account.</sub>`)
+  lines.push('', `<sub>Estimate = series × ${multiplier} target(s) × $${pricePer1k.toFixed(2)} per 1,000 active series/month${dpmFactor(scrapeInterval) > 1 ? ` × ${fmt(dpmFactor(scrapeInterval))} for a ${scrapeInterval}s scrape interval (1 DPM included)` : ''}. Grafana Cloud includes 10k series free per account.</sub>`)
   return lines.join('\n')
 }
 

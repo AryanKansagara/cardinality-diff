@@ -51,12 +51,12 @@ try {
   for (const [which, r] of /** @type {const} */ ([['base', base], ['head', head]])) {
     for (const e of r.errors.slice(0, 20)) console.log(`::warning file=${input(which)},line=${e.line}::${e.message}`)
   }
-  const multiplier = num('multiplier', 1), pricePer1k = num('price-per-1k', 6.5)
+  const multiplier = num('multiplier', 1), pricePer1k = num('price-per-1k', 6.5), scrapeInterval = num('scrape-interval', 60) || 60
   const failAbove = input('fail-above') === '' ? null : num('fail-above', 0)
   const d = diff(base, head)
   const risks = findRisks(head, base)
-  const cost = monthlyCost(d.delta, multiplier, pricePer1k)
-  const md = renderMarkdown({ diff: d, risks, multiplier, pricePer1k, failAbove, errors: base.errors.length + head.errors.length })
+  const cost = monthlyCost(d.delta, multiplier, pricePer1k, scrapeInterval)
+  const md = renderMarkdown({ diff: d, risks, multiplier, pricePer1k, scrapeInterval, failAbove, errors: base.errors.length + head.errors.length })
 
   console.log(`Series delta ${signed(d.delta)} per target, ${usd(cost, true)}/month, ${risks.length} risky label(s)`)
   output('series-delta', d.delta)

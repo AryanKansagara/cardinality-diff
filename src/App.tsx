@@ -1,6 +1,7 @@
 import { RouteApp } from './router.tsx'
 import { Landing, MockFrame, MockStat, MockBars, MockList } from './Landing.tsx'
 import Tool from './Tool.tsx'
+import Docs from './Docs.tsx'
 
 function ProductLanding() {
   return (
@@ -78,5 +79,5 @@ function ProductLanding() {
 }
 
 export default function App() {
-  return <RouteApp landing={<ProductLanding />} tool={<Tool />} />
+  return <RouteApp landing={<ProductLanding />} tool={<Tool />} docs={<Docs />} />
 }

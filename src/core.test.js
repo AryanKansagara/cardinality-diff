@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { parse, diff, findRisks, project, monthlyCost, renderMarkdown, encodeState, decodeState, templatePath, MARKER } from './core.js'
+import { parse, diff, findRisks, project, monthlyCost, renderMarkdown, encodeState, decodeState, templatePath, seriesPerValue, MARKER } from './core.js'
 
 const sample = (/** @type {string} */ f) => readFileSync(new URL(`../samples/${f}`, import.meta.url), 'utf8')
 
@@ -137,4 +137,84 @@ test('share state round-trips', async () => {
   const enc = await encodeState(state)
   assert.match(enc, /^[A-Za-z0-9_-]+$/)
   assert.deepEqual(await decodeState(enc), state)
+})
+
+// Real scrapes, trimmed: samples/real/node-exporter.prom is from node_exporter's end-to-end fixture
+// (github.com/prometheus/node_exporter, collector/fixtures/e2e-output.txt) and samples/real/prometheus-self.om.txt
+// is Prometheus' own /metrics in OpenMetrics (github.com/prometheus/prometheus, model/textparse/testdata/prometheus.om1.txt).
+// Both Apache-2.0.
+
+test('real node_exporter scrape parses cleanly and hardware identity labels are not flagged as unbounded', () => {
+  const r = parse(sample('real/node-exporter.prom'))
+  assert.deepEqual(r.errors, [])
+  assert.equal(r.families.length, 9)
+  assert.equal(r.series, 217)
+  const risks = findRisks(r)
+  // MAC addresses on node_network_info are not IPv6 addresses.
+  assert.ok(!risks.some((x) => x.label === 'mac_address' || x.label === 'address'))
+  // One bcachefs filesystem uuid on five families is one finding, and a single value is not "unbounded".
+  const fs = risks.find((x) => x.label === 'uuid' && x.metric.startsWith('node_bcachefs'))
+  assert.equal(fs?.members?.length, 5)
+  assert.equal(fs?.severity, 'warn')
+  assert.equal(risks.filter((x) => x.label === 'uuid' && x.metric.startsWith('node_bcachefs')).length, 1)
+})
+
+test('real Prometheus OpenMetrics self-scrape: gauge and counter declared under one name stay separate', () => {
+  const r = parse(sample('real/prometheus-self.om.txt'))
+  assert.deepEqual(r.errors, [])
+  const g = r.families.find((f) => f.name === 'go_memstats_alloc_bytes')
+  const c = r.families.find((f) => f.name === 'go_memstats_alloc_bytes_total')
+  assert.equal(g?.type, 'gauge')
+  assert.match(g?.help ?? '', /currently in use/)
+  assert.equal(c?.type, 'counter')
+  assert.equal(c?.series, 1)
+  assert.equal(c?.created, 1)
+})
+
+test('route-template handlers are not mistaken for raw paths with IDs', () => {
+  const risks = findRisks(parse(sample('real/prometheus-self.om.txt')))
+  const h = risks.find((x) => x.label === 'handler')
+  assert.equal(h?.severity, 'warn')
+  assert.notEqual(h?.kind, 'path')
+  assert.equal(templatePath('/alertmanager-discovery'), '/alertmanager-discovery')
+  assert.equal(templatePath('/t/AbCdEf0123456789xyzQ'), '/t/:id')
+})
+
+test('OpenMetrics timestamped samples of one series are one series (conformance: duplicate_timestamps)', () => {
+  const r = parse('# TYPE a gauge\n# HELP a help\na{a="1",foo="bar"} 1 0.0000000000\na{a="1",foo="bar"} 2 0.0000000001\na{a="2",foo="bar"} 4 0\n# EOF\n')
+  assert.deepEqual(r.errors, [])
+  assert.equal(r.series, 2)
+  assert.match(parse('a{x="1"} 1\na{x="1"} 2\n').errors[0]?.message ?? '', /duplicate series/)
+})
+
+test('single-value and info-metric labels are warnings in an audit but unbounded when a change adds them', () => {
+  const head = parse('# TYPE app_build_info gauge\napp_build_info{revision="40af9c2cdc0eda00f3622e867a27f6359f7295f3"} 1\n')
+  assert.equal(findRisks(head)[0]?.severity, 'warn')
+  const base = parse('# TYPE app_build_info gauge\napp_build_info 1\n')
+  const added = findRisks(head, base)[0]
+  assert.equal(added?.isNew, true)
+  assert.equal(added?.severity, 'bad')
+})
+
+test('many distinct values alone is a warning, not proof of an unbounded label', () => {
+  const r = parse(Array.from({ length: 60 }, (_, i) => `scrape_success{collector="c${String.fromCharCode(97 + (i % 26))}${i}"} 1`).join('\n'))
+  const risks = findRisks(r)
+  assert.equal(risks.length, 1)
+  assert.equal(risks[0].severity, 'warn')
+})
+
+test('cost follows Grafana Cloud DPM billing: 15s scrape bills 4x, slower than 60s never below 1x', () => {
+  assert.equal(monthlyCost(1000, 1, 6.5), 6.5)
+  assert.equal(monthlyCost(1000, 1, 6.5, 15), 26)
+  assert.equal(monthlyCost(1000, 1, 6.5, 30), 13)
+  assert.equal(monthlyCost(1000, 1, 6.5, 120), 6.5)
+  const base = parse(sample('base.prom')), head = parse(sample('head.prom'))
+  const md = renderMarkdown({ diff: diff(base, head), risks: findRisks(head, base), multiplier: 12, pricePer1k: 6.5, scrapeInterval: 15 })
+  assert.match(md, /\+\$129\.79\/month/)
+  assert.match(md, /15s scrape \(4 DPM\)/)
+})
+
+test('a grouped finding adds one label combination per member family', () => {
+  assert.equal(seriesPerValue({ series: 30, groups: 3, members: [{ series: 20, groups: 2 }, { series: 10, groups: 10 }] }), 11)
+  assert.equal(seriesPerValue({ series: 42, groups: 3 }), 14)
 })

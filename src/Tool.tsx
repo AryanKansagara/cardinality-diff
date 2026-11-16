@@ -7,6 +7,7 @@ import {
 } from './core.js'
 import baseSample from '../samples/base.prom?raw'
 import headSample from '../samples/head.prom?raw'
+import nodeExporterSample from '../samples/real/node-exporter.prom?raw'
 
 type Report = ReturnType<typeof parse>
 type Risk = ReturnType<typeof findRisks>[number]
@@ -15,8 +16,8 @@ type Mode = 'diff' | 'audit'
 const PRICING_URL = 'https://grafana.com/pricing/'
 const MAX_SHARE = 60_000 // characters in the URL hash; beyond this, browsers and chat apps start truncating
 
-function ScrapeInput({ label, value, onChange, sample, report }: {
-  label: string; value: string; onChange: (v: string) => void; sample: string; report: Report
+function ScrapeInput({ label, value, onChange, sample, report, real }: {
+  label: string; value: string; onChange: (v: string) => void; sample: string; report: Report; real?: string
 }) {
   const [drag, setDrag] = useState(false)
   const load = (f?: File) => f && f.text().then(onChange)
@@ -27,6 +28,7 @@ function ScrapeInput({ label, value, onChange, sample, report }: {
         <h3>{label}</h3>
         <div className="row">
           <button className="btn ghost sm" onClick={() => onChange(sample)}>Load sample</button>
+          {real && <button className="btn ghost sm" title="Excerpt of node_exporter's public end-to-end test scrape (Apache-2.0)" onClick={() => onChange(real)}>Real node_exporter scrape</button>}
           <label className="btn ghost sm">Upload<input type="file" accept=".txt,.prom,.metrics,text/plain,*/*" hidden onChange={(e) => load(e.target.files?.[0])} /></label>
           {value && <button className="btn ghost sm" onClick={() => onChange('')}>Clear</button>}
         </div>
@@ -87,6 +89,7 @@ function RiskCard({ r, expected, setExpected, cost }: {
 }) {
   const per = seriesPerValue(r)
   const projected = expected ? Math.round(r.series * (expected / r.distinct)) : null
+  const others = (r.members ?? []).slice(1).map((m) => m.metric)
   return (
     <div className={`finding ${r.severity}`}>
       <div className="row spread">
@@ -96,6 +99,12 @@ function RiskCard({ r, expected, setExpected, cost }: {
           <span className={`badge ${r.severity}`}>{r.severity === 'bad' ? 'Unbounded' : 'Suspicious'}</span>
         </div>
       </div>
+      {others.length > 0 && (
+        <details className="small">
+          <summary>Same label and values on {others.length} more metric{others.length > 1 ? 's' : ''} ({fmt(r.series)} series in all)</summary>
+          <p className="mono small">{others.join(', ')}</p>
+        </details>
+      )}
       <ul className="reasons">{r.reasons.map((x) => <li key={x}>{x}</li>)}</ul>
       <div className="chips">{r.examples.map((v) => <code key={v}>{v || '""'}</code>)}</div>
       <p className="small muted">
@@ -108,7 +117,7 @@ function RiskCard({ r, expected, setExpected, cost }: {
           id={`p-${r.metric}-${r.label}`} type="number" min={1} placeholder={String(r.distinct)} value={expected ?? ''}
           onChange={(e) => setExpected(e.target.value ? Math.max(1, Number(e.target.value)) : undefined)}
         />
-        {projected !== null && <span className="small"><b>{fmt(projected)}</b> series for this metric · <b>{usd(cost(projected))}</b>/mo</span>}
+        {projected !== null && <span className="small"><b>{fmt(projected)}</b> series for {others.length ? 'these metrics' : 'this metric'} · <b>{usd(cost(projected))}</b>/mo</span>}
       </div>
       <details>
         <summary>How to fix ({r.suggestions.length})</summary>
@@ -144,6 +153,7 @@ export default function Tool() {
   const [head, setHead] = useState(headSample)
   const [multiplier, setMultiplier] = useState(10)
   const [price, setPrice] = useState(6.5)
+  const [interval, setInterval_] = useState(60)
   const [expected, setExpected] = useState<Record<string, number>>({})
   const [showAll, setShowAll] = useState(false)
   const [notice, setNotice] = useState('')
@@ -153,7 +163,7 @@ export default function Tool() {
     if (!m) return
     decodeState(m[1]).then((s) => {
       setMode(s.m === 'audit' ? 'audit' : 'diff'); setBase(String(s.b ?? '')); setHead(String(s.h ?? ''))
-      setMultiplier(Number(s.x) || 1); setPrice(Number(s.p) || 6.5); setExpected(s.e ?? {})
+      setMultiplier(Number(s.x) || 1); setPrice(Number(s.p) || 6.5); setInterval_(Number(s.i) || 60); setExpected(s.e ?? {})
     }).catch(() => setNotice('That share link could not be decoded.'))
   }, [])
 
@@ -166,18 +176,18 @@ export default function Tool() {
   const d = useMemo(() => diff(ref, headR), [ref, headR])
   const risks = useMemo(() => findRisks(headR, isDiff ? baseR : undefined), [headR, baseR, isDiff])
   const proj = useMemo(() => project(headR, expected), [headR, expected])
-  const cost = (n: number) => monthlyCost(n, multiplier, price)
+  const cost = (n: number) => monthlyCost(n, multiplier, price, interval)
   const hasProj = Object.values(expected).some((v) => v > 0)
   const rows = d.rows.filter((r) => showAll || r.status !== 'unchanged')
 
   const flash = (s: string) => { setNotice(s); setTimeout(() => setNotice(''), 2500) }
   const share = async () => {
-    const enc = await encodeState({ m: mode, b: isDiff ? base : '', h: head, x: multiplier, p: price, e: expected })
+    const enc = await encodeState({ m: mode, b: isDiff ? base : '', h: head, x: multiplier, p: price, i: interval, e: expected })
     if (enc.length > MAX_SHARE) return flash(`Inputs are too large for a link (${fmt(enc.length)} chars compressed). Trim the scrapes and try again.`)
     history.replaceState(null, '', `#s=${enc}`)
     await navigator.clipboard.writeText(location.href).then(() => flash('Share link copied to clipboard.'), () => flash('Link is in the address bar.'))
   }
-  const copyMd = () => navigator.clipboard.writeText(renderMarkdown({ diff: d, risks, multiplier, pricePer1k: price, errors: baseR.errors.length + headR.errors.length }))
+  const copyMd = () => navigator.clipboard.writeText(renderMarkdown({ diff: d, risks, multiplier, pricePer1k: price, scrapeInterval: interval, errors: baseR.errors.length + headR.errors.length }))
     .then(() => flash('PR comment Markdown copied.'))
 
   return (
@@ -202,7 +212,7 @@ export default function Tool() {
 
       <div className={isDiff ? 'grid cols-2' : 'grid'}>
         {isDiff && <ScrapeInput label="Base (main branch)" value={base} onChange={setBase} sample={baseSample} report={baseR} />}
-        <ScrapeInput label={isDiff ? 'Head (pull request)' : 'Scrape'} value={head} onChange={setHead} sample={headSample} report={headR} />
+        <ScrapeInput label={isDiff ? 'Head (pull request)' : 'Scrape'} value={head} onChange={setHead} sample={headSample} report={headR} real={isDiff ? undefined : nodeExporterSample} />
       </div>
 
       <section className="panel settings">
@@ -214,7 +224,12 @@ export default function Tool() {
         <div className="field">
           <label htmlFor="price">$ per 1,000 active series / month</label>
           <input id="price" type="number" min={0} step={0.5} value={price} onChange={(e) => setPrice(Math.max(0, Number(e.target.value)))} />
-          <span className="small muted">Default: <a href={PRICING_URL} target="_blank" rel="noreferrer">Grafana Cloud Pro</a> list price; first 10k series free per account</span>
+          <span className="small muted">Default: <a href={PRICING_URL} target="_blank" rel="noreferrer">Grafana Cloud Pro</a> list price; first 10k series free per account. <a href="/docs">How this is calculated</a></span>
+        </div>
+        <div className="field">
+          <label htmlFor="interval">Scrape interval (seconds)</label>
+          <input id="interval" type="number" min={1} value={interval} onChange={(e) => setInterval_(Math.max(1, Number(e.target.value) || 60))} />
+          <span className="small muted">Grafana Cloud includes 1 data point per minute per series; a 15s scrape bills as 4 series</span>
         </div>
         <div className="row actions">
           <button className="btn" onClick={share}>Copy share link</button>
@@ -228,12 +243,12 @@ export default function Tool() {
           <>
             <Stat label="Series per target" value={`${fmt(d.base)} → ${fmt(d.head)}`} />
             <Stat label="Series delta" value={signed(d.delta)} sub={pct(d.base ? (d.delta / d.base) * 100 : null)} tone={d.delta > 0 ? 'bad' : 'good'} />
-            <Stat label="Monthly cost delta" value={usd(cost(d.delta), true)} sub={`${fmt(d.delta * multiplier)} series across ${multiplier} targets`} tone={d.delta > 0 ? 'bad' : 'good'} />
+            <Stat label="Monthly cost delta" value={usd(cost(d.delta), true)} sub={`${fmt(d.delta * multiplier)} series across ${multiplier} targets${interval < 60 ? `, ${fmt(60 / interval)} DPM` : ''}`} tone={d.delta > 0 ? 'bad' : 'good'} />
           </>
         ) : (
           <>
             <Stat label="Active series per target" value={fmt(headR.series)} sub={`${headR.families.length} metric families`} />
-            <Stat label="Estimated monthly cost" value={usd(cost(headR.series))} sub={`${fmt(headR.series * multiplier)} series across ${multiplier} targets`} />
+            <Stat label="Estimated monthly cost" value={usd(cost(headR.series))} sub={`${fmt(headR.series * multiplier)} series across ${multiplier} targets${interval < 60 ? `, ${fmt(60 / interval)} DPM` : ''}`} />
           </>
         )}
         <Stat label="Risky labels" value={String(risks.length)} sub={`${risks.filter((r) => r.severity === 'bad').length} likely unbounded`} tone={risks.length ? 'warn' : 'good'} />
@@ -255,8 +270,13 @@ export default function Tool() {
           </p>
           {risks.map((r) => {
             const k = `${r.metric}{${r.label}}`
+            const keys = (r.members ?? [r]).map((m) => `${m.metric}{${r.label}}`)
             return <RiskCard key={k} r={r} cost={cost} expected={expected[k]}
-              setExpected={(n) => setExpected(({ [k]: _, ...rest }) => (n ? { ...rest, [k]: n } : rest))} />
+              setExpected={(n) => setExpected((prev) => {
+                const next = { ...prev }
+                for (const x of keys) { if (n) next[x] = n; else delete next[x] }
+                return next
+              })} />
           })}
         </section>
       )}
