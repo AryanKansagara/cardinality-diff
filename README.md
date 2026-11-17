@@ -216,4 +216,4 @@ JSDoc types, so the React app and the Action share one implementation without a 
 - Projection assumes flagged labels vary independently, so it is an upper bound.
 - Native histograms are not part of the text format and are not modelled.
 
-Built by Aryan Kansagara. Independent project, not affiliated with Grafana Labs.
+Built by Aryan Kansagara.
