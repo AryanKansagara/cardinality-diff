@@ -19,6 +19,21 @@ export default function Docs() {
           families instead of reporting an error.
         </p>
 
+        <h2>When a result is not shown</h2>
+        <p>
+          A file with no metric families (JSON, an HTML error page, binary data, or an empty file), and an OpenMetrics document
+          without its required <code>{'# EOF'}</code> line, are refused: no delta, savings or cost is shown and the GitHub Action
+          fails, with or without <code>fail-above</code>. This applies to the base as much as the head, so an unreadable base never
+          makes every metric look new.
+        </p>
+        <p>
+          Malformed lines in an otherwise valid scrape are skipped and the result is marked incomplete, never green. A net decrease
+          in a text-format scrape is shown but marked unconfirmed, because the text format has no end marker and a scrape cut off at
+          a line boundary looks like a real removal. Every decrease is flagged rather than only large ones, since a cut near the end
+          of the file is as small as a small legitimate removal. A reduction in an OpenMetrics scrape that ends with <code>{'# EOF'}</code> is
+          proven complete and is reported as usual.
+        </p>
+
         <h2>Tested against real scrapes</h2>
         <ul>
           <li>{a('https://github.com/prometheus/node_exporter/blob/master/collector/fixtures/e2e-output.txt', 'node_exporter end-to-end fixture')}: 3,049 samples, 1,230 declared families, no parse errors.</li>

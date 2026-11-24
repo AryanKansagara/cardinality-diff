@@ -2,7 +2,7 @@ import { useDeferredValue, useEffect, useMemo, useState, type DragEvent } from '
 import { Shell } from './Shell.tsx'
 import { BackToHome } from './router.tsx'
 import {
-  parse, diff, findRisks, project, monthlyCost, renderMarkdown, encodeState, decodeState, seriesPerValue,
+  parse, diff, findRisks, project, monthlyCost, renderMarkdown, encodeState, decodeState, seriesPerValue, verdict, checkScrape,
   fmt, signed, usd, pct,
 } from './core.js'
 import baseSample from '../samples/base.prom?raw'
@@ -42,6 +42,7 @@ function ScrapeInput({ label, value, onChange, sample, report, real }: {
       <div className="row spread small">
         <span className="muted">{report.families.length} families · {fmt(report.series)} series</span>
         {report.errors.length ? <span className="badge bad">{report.errors.length} malformed line{report.errors.length > 1 ? 's' : ''}</span>
+          : checkScrape(report).state === 'truncated' ? <span className="badge bad" title="OpenMetrics requires a final # EOF line">Incomplete: no # EOF</span>
           : value.trim() ? <span className="badge good">Parsed cleanly</span> : null}
       </div>
       {report.errors.length > 0 && (
@@ -134,6 +135,7 @@ function RiskCard({ r, expected, setExpected, cost }: {
 
 const escapeHtml = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`)
 const inlineCode = (s: string) => escapeHtml(s).replace(/`([^`]+)`/g, '<code>$1</code>')
+const richText = (s: string) => inlineCode(s).replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
 
 function Code({ text }: { text: string }) {
   const [copied, setCopied] = useState(false)
@@ -174,9 +176,17 @@ export default function Tool() {
   const isDiff = mode === 'diff'
   const ref = isDiff ? baseR : emptyR
   const d = useMemo(() => diff(ref, headR), [ref, headR])
-  const risks = useMemo(() => findRisks(headR, isDiff ? baseR : undefined), [headR, baseR, isDiff])
+  const v = useMemo(
+    () => verdict({ base: isDiff ? baseR : undefined, head: headR, diff: d, names: isDiff ? { base: 'base', head: 'head' } : { base: 'base', head: 'pasted' } }),
+    [baseR, headR, d, isDiff],
+  )
+  const blocked = v.status === 'blocked'
+  const risks = useMemo(() => (blocked ? [] : findRisks(headR, isDiff ? baseR : undefined)), [blocked, headR, baseR, isDiff])
   const proj = useMemo(() => project(headR, expected), [headR, expected])
   const cost = (n: number) => monthlyCost(n, multiplier, price, interval)
+  // Only a trustworthy decrease is good news; a decrease that needs confirming, or an incomplete result, is not green.
+  const deltaTone = d.delta > 0 ? 'bad' : v.status === 'ok' ? 'good' : 'warn'
+  const qualifier = v.status === 'confirm' ? ' · unconfirmed' : v.status === 'incomplete' ? ' · incomplete' : ''
   const hasProj = Object.values(expected).some((v) => v > 0)
   const rows = d.rows.filter((r) => showAll || r.status !== 'unchanged')
 
@@ -187,7 +197,7 @@ export default function Tool() {
     history.replaceState(null, '', `#s=${enc}`)
     await navigator.clipboard.writeText(location.href).then(() => flash('Share link copied to clipboard.'), () => flash('Link is in the address bar.'))
   }
-  const copyMd = () => navigator.clipboard.writeText(renderMarkdown({ diff: d, risks, multiplier, pricePer1k: price, scrapeInterval: interval, errors: baseR.errors.length + headR.errors.length }))
+  const copyMd = () => navigator.clipboard.writeText(renderMarkdown({ diff: d, risks, multiplier, pricePer1k: price, scrapeInterval: interval, verdict: v }))
     .then(() => flash('PR comment Markdown copied.'))
 
   return (
@@ -238,12 +248,27 @@ export default function Tool() {
         {notice && <p className="notice small" role="status">{notice}</p>}
       </section>
 
+      {blocked ? (
+        <section className="finding bad" role="alert">
+          <h3><b>{isDiff ? 'Could not compare these scrapes' : 'Could not read this scrape'}</b></h3>
+          <ul className="reasons">
+            {v.blockers.map((b) => <li key={b} dangerouslySetInnerHTML={{ __html: richText(b) }} />)}
+          </ul>
+          <p className="small muted">
+            No series delta, savings or cost is shown for an empty, unreadable or truncated scrape.
+            {isDiff ? ' To inspect one scrape on its own, use Audit mode.' : ''}
+          </p>
+        </section>
+      ) : (<>
+      {v.warnings.map((w) => (
+        <div key={w} className="finding warn small" role="note" dangerouslySetInnerHTML={{ __html: richText(w) }} />
+      ))}
       <section className="stats">
         {isDiff ? (
           <>
             <Stat label="Series per target" value={`${fmt(d.base)} → ${fmt(d.head)}`} />
-            <Stat label="Series delta" value={signed(d.delta)} sub={pct(d.base ? (d.delta / d.base) * 100 : null)} tone={d.delta > 0 ? 'bad' : 'good'} />
-            <Stat label="Monthly cost delta" value={usd(cost(d.delta), true)} sub={`${fmt(d.delta * multiplier)} series across ${multiplier} targets${interval < 60 ? `, ${fmt(60 / interval)} DPM` : ''}`} tone={d.delta > 0 ? 'bad' : 'good'} />
+            <Stat label="Series delta" value={signed(d.delta)} sub={pct(d.base ? (d.delta / d.base) * 100 : null) + qualifier} tone={deltaTone} />
+            <Stat label="Monthly cost delta" value={usd(cost(d.delta), true)} sub={`${fmt(d.delta * multiplier)} series across ${multiplier} targets${interval < 60 ? `, ${fmt(60 / interval)} DPM` : ''}${qualifier}`} tone={deltaTone} />
           </>
         ) : (
           <>
@@ -281,7 +306,9 @@ export default function Tool() {
         </section>
       )}
       {headR.families.length > 0 && risks.length === 0 && (
-        <div className="finding good">No unbounded-looking labels found{isDiff ? ' in this change' : ''}.</div>
+        v.status === 'incomplete'
+          ? <div className="finding warn">No unbounded-looking labels found in the lines that could be read{isDiff ? ' in this change' : ''}.</div>
+          : <div className="finding good">No unbounded-looking labels found{isDiff ? ' in this change' : ''}.</div>
       )}
 
       <Bars base={ref} head={headR} mode={mode} />
@@ -341,6 +368,7 @@ export default function Tool() {
           )}
         </div>
       </section>
+      </>)}
 
       <section className="small muted about">
         <p>

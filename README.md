@@ -78,11 +78,38 @@ lines are parsed but not counted, since Prometheus 3 does not ingest them as ser
 | `price-per-1k` | `6.5` | USD per 1,000 active series per month |
 | `scrape-interval` | `60` | Seconds between scrapes; below 60 multiplies cost by 60/interval |
 | `fail-above` | none | Fail the step if the series delta is above this |
+| `allow-empty-base` | `false` | Accept an empty base scrape (first run). See [Unreadable, empty or cut-off scrapes](#unreadable-empty-or-cut-off-scrapes) |
 | `github-token` | `${{ github.token }}` | Needs `pull-requests: write` |
 
-Outputs: `series-delta` and `cost-delta` (USD per month). The action creates one PR comment and updates it on later pushes
+Outputs: `series-delta` and `cost-delta` (USD per month), and `status` (`ok`, `confirm`, `incomplete` or `blocked`, below).
+`series-delta` and `cost-delta` are not set when the status is `blocked`. The action creates one PR comment and updates it on later pushes
 (found by a hidden marker), writes the same report to the job summary, and annotates malformed lines as warnings. It runs on
 `node20` with no dependencies and no build step.
+
+### Unreadable, empty or cut-off scrapes
+
+A comparison is only as good as the two files. The Action and the web tool never turn a bad file into a result:
+
+| Situation | What happens |
+|---|---|
+| A side has **no metric families**: JSON, an HTML error page, binary data (`unreadable`), or a blank file, or only comments or `# EOF` (`empty`) | **Blocked.** No delta, savings or cost; `❌` comment; the step **fails (exit 1) even when `fail-above` is unset**; `series-delta`/`cost-delta` are not set. Applies to base and head alike, so an unreadable base cannot make everything look newly added. |
+| An **OpenMetrics** document without its mandatory `# EOF` line | **Blocked** as truncated. The [OpenMetrics spec](https://prometheus.io/docs/specs/om/open_metrics_spec/#overall-structure) says "Expositions MUST end with EOF", so a missing one proves the document is incomplete. A document counts as OpenMetrics if it has `# EOF`, a `# UNIT` line, an exemplar, a `info` / `stateset` / `gaugehistogram` / `unknown` type, or `# TYPE foo counter` with a `foo_total` sample (the text format declares the full name, `# TYPE foo_total counter`). |
+| Some **malformed lines** in an otherwise valid scrape | Same numbers as before, status `incomplete`: `🟠` at best, labelled _incomplete_, with a warning. The rule is "any skipped line", with no percentage threshold: a line that was skipped is a series that was not counted, however few. The step passes unless `fail-above` is exceeded. |
+| The **series count went down** and the head has no `# EOF` | Status `confirm`: the reduction is reported (a legitimately removed family still shows as removed, with its delta), but flagged _unconfirmed_ and never `🟢`, with a note to confirm the removed metrics were removed on purpose. The step passes. |
+
+The text format 0.0.4 has no end marker, so a scrape cut off at a line boundary cannot be told from a complete one. That is why every net decrease is flagged, not only large ones: a cut near the end of the file is as small as a small legitimate removal, and any cut-off we picked would be arbitrary. A reduction in an OpenMetrics scrape that ends with `# EOF` is proven complete and stays green. A cut-off *base* is not detectable in the text format either; it can only make a PR look like it adds series, never like it saves them.
+
+**First run.** When there is no base yet, set `allow-empty-base: true` to compare against nothing: every family counts as new and the comment says so. It is off by default, accepts only a base with no metric families and no malformed lines (an unreadable or truncated base still fails), and an empty head is never accepted.
+
+```yaml
+- uses: AryanKansagara/cardinality-diff@v1
+  with:
+    base: ${{ runner.temp }}/base.prom   # may be an empty file on the very first run
+    head: ${{ runner.temp }}/head.prom
+    allow-empty-base: true   # only while bootstrapping; remove it once the base scrape exists
+```
+
+In the web tool the same states appear as an explicit "Could not compare these scrapes" panel instead of the stats, and the Diff tab refuses an empty base (use Audit mode to inspect a single scrape).
 
 ### Example workflow
 
@@ -197,7 +224,7 @@ env INPUT_BASE=samples/base.prom INPUT_HEAD=samples/head.prom INPUT_MULTIPLIER=1
 ```sh
 npm install
 npm run dev     # web tool
-npm test        # parser, diff, detector, cost and share-link tests (node:test)
+npm test        # parser, diff, detector, cost, share-link, incomplete-input and Action (`node action/index.js`) tests (node:test)
 npm run build   # type-check and production build into dist/
 npm run test:e2e  # builds, then runs the Playwright (Chromium) suite against `vite preview`
 ```
@@ -222,5 +249,7 @@ JSDoc types, so the React app and the Action share one implementation without a 
   exercised, which is what the production projection is for.
 - Projection assumes flagged labels vary independently, so it is an upper bound.
 - Native histograms are not part of the text format and are not modelled.
+- Text format 0.0.4 cannot prove a scrape is complete (see above). A scrape that is mostly garbage but contains a few valid lines is reported as `incomplete`, not blocked, because only "no metric families at all" is provably unreadable.
+- A hand-written scrape that mixes text-format syntax with the OpenMetrics-only markers listed above is read as OpenMetrics and blocked until it ends with `# EOF`.
 
 Built by Aryan Kansagara.

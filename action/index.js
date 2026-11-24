@@ -1,6 +1,6 @@
 // GitHub Action entry point. Zero dependencies: reads inputs from env, talks to the REST API with fetch.
 import { readFileSync, appendFileSync } from 'node:fs'
-import { parse, diff, findRisks, monthlyCost, renderMarkdown, signed, usd, MARKER } from '../src/core.js'
+import { parse, diff, findRisks, monthlyCost, renderMarkdown, verdict, signed, usd, MARKER } from '../src/core.js'
 
 const env = process.env
 const input = (/** @type {string} */ name) => (env[`INPUT_${name.toUpperCase()}`] ?? '').trim()
@@ -10,6 +10,12 @@ const num = (/** @type {string} */ name, /** @type {number} */ def) => {
   const n = Number(v)
   if (!Number.isFinite(n) || n < 0) throw new Error(`Input "${name}" must be a non-negative number, got "${v}"`)
   return n
+}
+const bool = (/** @type {string} */ name) => {
+  const v = input(name).toLowerCase()
+  if (v === '' || v === 'false') return false
+  if (v === 'true') return true
+  throw new Error(`Input "${name}" must be "true" or "false", got "${input(name)}"`)
 }
 const output = (/** @type {string} */ k, /** @type {string|number} */ v) => env.GITHUB_OUTPUT && appendFileSync(env.GITHUB_OUTPUT, `${k}=${v}\n`)
 
@@ -53,18 +59,29 @@ try {
   }
   const multiplier = num('multiplier', 1), pricePer1k = num('price-per-1k', 6.5), scrapeInterval = num('scrape-interval', 60) || 60
   const failAbove = input('fail-above') === '' ? null : num('fail-above', 0)
+  const allowEmptyBase = bool('allow-empty-base')
   const d = diff(base, head)
-  const risks = findRisks(head, base)
+  const v = verdict({ base, head, diff: d, allowEmptyBase })
+  const risks = v.status === 'blocked' ? [] : findRisks(head, base)
   const cost = monthlyCost(d.delta, multiplier, pricePer1k, scrapeInterval)
-  const md = renderMarkdown({ diff: d, risks, multiplier, pricePer1k, scrapeInterval, failAbove, errors: base.errors.length + head.errors.length })
+  const md = renderMarkdown({ diff: d, risks, multiplier, pricePer1k, scrapeInterval, failAbove, verdict: v })
 
-  console.log(`Series delta ${signed(d.delta)} per target, ${usd(cost, true)}/month, ${risks.length} risky label(s)`)
-  output('series-delta', d.delta)
-  output('cost-delta', cost.toFixed(2))
+  output('status', v.status)
+  if (v.status === 'blocked') {
+    // No delta, savings or cost: an unreadable or truncated side makes every number meaningless.
+    for (const b of v.blockers) console.log(`::error::${b}`)
+    console.log('No series delta or cost was computed.')
+  } else {
+    console.log(`Series delta ${signed(d.delta)} per target, ${usd(cost, true)}/month, ${risks.length} risky label(s)${v.status === 'ok' ? '' : ` (${v.status})`}`)
+    for (const w of v.warnings) console.log(`::warning::${w.replace(/\*\*/g, '')}`)
+    output('series-delta', d.delta)
+    output('cost-delta', cost.toFixed(2))
+  }
   if (env.GITHUB_STEP_SUMMARY) appendFileSync(env.GITHUB_STEP_SUMMARY, md + '\n')
   else console.log('\n' + md)
   await upsertComment(md)
-  if (failAbove !== null && d.delta > failAbove) {
+  if (v.status === 'blocked') process.exitCode = 1 // regardless of fail-above
+  else if (failAbove !== null && d.delta > failAbove) {
     console.log(`::error::Series delta ${d.delta} exceeds fail-above (${failAbove})`)
     process.exitCode = 1
   }
