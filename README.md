@@ -199,7 +199,14 @@ npm install
 npm run dev     # web tool
 npm test        # parser, diff, detector, cost and share-link tests (node:test)
 npm run build   # type-check and production build into dist/
+npm run test:e2e  # builds, then runs the Playwright (Chromium) suite against `vite preview`
 ```
+
+The E2E suite lives in `e2e/` and runs against the production build. Install the browser once with
+`npx playwright install chromium` (add `--with-deps` on a fresh Linux machine). Tests use only synthetic scrapes, block every
+non-local request (the web fonts are the only external requests the app makes), and fail on uncaught page errors.
+It listens on port 4179; set `E2E_PORT` to use another. GitHub Actions (`.github/workflows/ci.yml`) runs `npm ci`, build,
+unit tests and E2E on every pull request and push to `main`, and caches the Chromium download by Playwright version.
 
 `src/core.js` holds all the logic (parser, diff, risk detection, cost, Markdown rendering, share encoding) as plain ESM with
 JSDoc types, so the React app and the Action share one implementation without a build step. `src/App.tsx` is the UI;
