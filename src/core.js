@@ -10,7 +10,10 @@
  *   sampleNames: string[],
  *   labels: { name: string, values: string[] }[]
  * }} Family
- * @typedef {{ families: Family[], errors: ParseError[], series: number }} Report
+ * @typedef {{
+ *   families: Family[], errors: ParseError[], series: number,
+ *   eof: boolean, openMetrics: boolean
+ * }} Report
  * @typedef {{
  *   name: string, type: string, status: 'added'|'removed'|'changed'|'unchanged',
  *   base: number, head: number, delta: number, pct: number|null,
@@ -26,6 +29,8 @@
  * }} Risk
  */
 
+/** Metric types the text format 0.0.4 does not have; a scrape that declares one is OpenMetrics. */
+const OPENMETRICS_ONLY_TYPES = new Set(['unknown', 'gaugehistogram', 'stateset', 'info'])
 const TYPES = new Set(['counter', 'gauge', 'histogram', 'summary', 'untyped', 'unknown', 'gaugehistogram', 'stateset', 'info'])
 /** @type {Record<string, string[]>} sample-name suffixes that belong to a declared family */
 const SUFFIXES = {
@@ -131,6 +136,8 @@ export function parse(text) {
   const fams = new Map()
   const lines = text.split(/\r?\n/)
   let eof = false
+  // Syntax only OpenMetrics producers emit (`# UNIT`, exemplars, info/stateset/gaugehistogram/unknown types, `# TYPE foo counter` + `foo_total`). OpenMetrics requires a closing `# EOF`; text format 0.0.4 has no end marker.
+  let openMetrics = false
   /** @type {Map<string, string>} families whose TYPE was redeclared after samples, by base name */
   const redeclared = new Map()
   /** @type {Map<string, {base: string, type: string}>} family key -> its declared base name and type */
@@ -149,6 +156,7 @@ export function parse(text) {
   const familyOf = (sample) => {
     for (const [base, type] of redeclared) {
       if (SUFFIXES[type].some((s) => sample === base + s)) {
+        if (type === 'counter' && sample === base + '_total') openMetrics = true
         const key = base + SUFFIXES[type][0]
         aliasOf.set(key, { base, type })
         return key
@@ -159,7 +167,12 @@ export function parse(text) {
       for (const s of sfx) {
         if (!sample.endsWith(s)) continue
         const base = sample.slice(0, -s.length)
-        if (meta.get(base)?.type === type) return base
+        if (meta.get(base)?.type === type) {
+          // `# TYPE foo counter` with a `foo_total` sample is how OpenMetrics names counters; the text format
+          // declares the full name (`# TYPE foo_total counter`).
+          if (type === 'counter' && s === '_total') openMetrics = true
+          return base
+        }
       }
     }
     return sample
@@ -174,13 +187,15 @@ export function parse(text) {
       if (line[0] === '#') {
         const m = /^#[ \t]+(HELP|TYPE|UNIT|EOF)\b[ \t]*(.*)$/.exec(line)
         if (!m) continue // plain comment
-        if (m[1] === 'EOF') { eof = true; continue }
+        if (m[1] === 'EOF') { eof = openMetrics = true; continue }
+        if (m[1] === 'UNIT') openMetrics = true
         const { n, rest } = metaName(m[2])
         const entry = meta.get(n) ?? { type: 'untyped', help: '' }
         if (m[1] === 'TYPE') {
           const t = rest.trim().toLowerCase()
           if (!TYPES.has(t)) throw `unknown metric type "${rest.trim()}"`
           const typed = t === 'unknown' ? 'untyped' : t
+          if (OPENMETRICS_ONLY_TYPES.has(t)) openMetrics = true
           const seen = fams.get(n)
           // Prometheus' own OpenMetrics output declares a gauge and a counter under one name
           // (go_memstats_alloc_bytes and go_memstats_alloc_bytes_total). Accept a redeclaration whose
@@ -223,6 +238,7 @@ export function parse(text) {
         c.ws()
         if (c.peek() !== '{') throw 'exemplar must start with a label set'
         parseLabels(c)
+        openMetrics = true
         c.ws()
         const ev = c.token()
         if (parseValue(ev) === null) throw `invalid exemplar value "${ev}"`
@@ -277,7 +293,7 @@ export function parse(text) {
     sampleNames: [...f.sampleNames].sort(),
     labels: [...f.labels].map(([name, v]) => ({ name, values: [...v] })).sort((a, b) => a.name.localeCompare(b.name)),
   }))
-  return { families, errors, series: families.reduce((s, f) => s + f.series, 0) }
+  return { families, errors, series: families.reduce((s, f) => s + f.series, 0), eof, openMetrics }
 }
 
 /**
@@ -306,6 +322,82 @@ export function diff(base, head) {
   }
   rows.sort((x, y) => Math.abs(y.delta) - Math.abs(x.delta) || x.name.localeCompare(y.name))
   return { rows, base: base.series, head: head.series, delta: head.series - base.series }
+}
+
+// ---------- can this comparison be trusted? ----------
+
+/**
+ * @typedef {{
+ *   state: 'ok'|'skipped-lines'|'empty'|'unreadable'|'truncated',
+ *   message: string
+ * }} ScrapeCheck
+ * @typedef {{
+ *   status: 'ok'|'confirm'|'incomplete'|'blocked',
+ *   blockers: string[], warnings: string[]
+ * }} Verdict
+ */
+
+/** Scrape text is untrusted: one line, bounded, no backticks (it is quoted in code) or control characters. */
+const quoteFromScrape = (/** @type {string} */ s) => '`' + s.replace(/[\u0000-\u001f\u007f`]/g, ' ').slice(0, 100) + (s.length > 100 ? '…' : '') + '`'
+const plural = (/** @type {number} */ n, /** @type {string} */ w) => `${fmt(n)} ${w}${n === 1 ? '' : 's'}`
+
+/**
+ * Decide whether one parsed scrape can be compared at all.
+ *  - empty: no families and nothing malformed (a blank file, or only comments and `# EOF`).
+ *  - unreadable: no families and at least one malformed line (JSON, an HTML error page, binary data).
+ *  - truncated: an OpenMetrics document without its mandatory `# EOF`, so it provably ends early.
+ *  - skipped-lines: usable, but some lines were malformed and are not counted.
+ * Text format 0.0.4 has no end marker, so a clean 0.0.4 scrape can never be proven complete; see `verdict`.
+ * @param {Report} r @returns {ScrapeCheck}
+ */
+export function checkScrape(r) {
+  if (!r.families.length) {
+    const first = r.errors[0]
+    return first
+      ? { state: 'unreadable', message: `no metric families could be parsed (${plural(r.errors.length, 'malformed line')}, first at line ${first.line}: ${quoteFromScrape(first.message)}). It does not look like a Prometheus or OpenMetrics /metrics response` }
+      : { state: 'empty', message: 'it is empty (no metric families)' }
+  }
+  if (r.openMetrics && !r.eof) {
+    return { state: 'truncated', message: 'it is an OpenMetrics document without its required "# EOF" line, so it is incomplete (cut off or truncated)' }
+  }
+  if (r.errors.length) return { state: 'skipped-lines', message: `${plural(r.errors.length, 'malformed line')} skipped` }
+  return { state: 'ok', message: '' }
+}
+
+/**
+ * Judge a comparison before showing any number from it.
+ * `blocked`: a side is empty, unreadable or provably truncated: no delta, cost or green result may be shown.
+ * `incomplete`: malformed lines were skipped on a side, so series on those lines are not counted.
+ * `confirm`: the series count went down and the head cannot be proven complete (no `# EOF`), so a scrape cut at a
+ *   line boundary looks the same as a real removal. Any net decrease needs a human to confirm it; there is no
+ *   percentage cut-off, because a cut near the end of the file is as small as a small legitimate removal.
+ * `base` may be omitted (single-scrape audit). `allowEmptyBase` accepts an empty, never an unreadable, base (first run).
+ * `names` is how messages call each side (the web tool's audit mode has one scrape, not a "head").
+ * @param {{ base?: Report, head: Report, diff?: Diff, allowEmptyBase?: boolean, names?: { base: string, head: string } }} o
+ * @returns {Verdict}
+ */
+export function verdict({ base, head, diff: d, allowEmptyBase = false, names = { base: 'base', head: 'head' } }) {
+  /** @type {string[]} */
+  const blockers = []
+  /** @type {string[]} */
+  const warnings = []
+  let skipped = 0
+  for (const [side, r] of /** @type {const} */ ([['base', base], ['head', head]])) {
+    if (!r) continue
+    const c = checkScrape(r)
+    if (c.state === 'empty' && side === 'base' && allowEmptyBase) {
+      warnings.push('**No base scrape.** `allow-empty-base` is on, so every metric family counts as new.')
+    } else if (c.state === 'empty' || c.state === 'unreadable' || c.state === 'truncated') {
+      blockers.push(`The ${names[side]} scrape cannot be used: ${c.message}.`)
+    } else if (c.state === 'skipped-lines') skipped += r.errors.length
+  }
+  if (blockers.length) return { status: 'blocked', blockers, warnings }
+  if (skipped) warnings.unshift(`**Incomplete result.** ${plural(skipped, 'malformed line')} ${skipped === 1 ? 'was' : 'were'} skipped while parsing, so series on ${skipped === 1 ? 'that line are' : 'those lines are'} not counted.`)
+  const decreased = !!base && !!d && d.delta < 0 && !head.eof
+  if (decreased) {
+    warnings.push(`**Unconfirmed reduction.** Active series went down by ${fmt(-(d?.delta ?? 0))} per target, but this scrape cannot be proven complete: the Prometheus text format has no end marker, so a scrape cut off at a line boundary looks the same as a real removal. Confirm the removed metrics were removed on purpose before counting this as savings (an OpenMetrics scrape ends with \`# EOF\`, which proves it is whole).`)
+  }
+  return { status: skipped ? 'incomplete' : decreased ? 'confirm' : 'ok', blockers, warnings }
 }
 
 // ---------- risky label detection ----------
@@ -511,25 +603,40 @@ export const MARKER = '<!-- cardinality-diff -->'
 
 /**
  * Render the PR comment.
- * @param {{ diff: Diff, risks: Risk[], multiplier: number, pricePer1k: number, failAbove?: number|null, errors?: number, scrapeInterval?: number }} o
+ * With a `verdict`, a blocked comparison renders no numbers at all and any other non-ok status is never green.
+ * @param {{ diff: Diff, risks: Risk[], multiplier: number, pricePer1k: number, failAbove?: number|null, errors?: number, scrapeInterval?: number, verdict?: Verdict }} o
  */
-export function renderMarkdown({ diff: d, risks, multiplier, pricePer1k, failAbove = null, errors = 0, scrapeInterval = 60 }) {
+export function renderMarkdown({ diff: d, risks, multiplier, pricePer1k, failAbove = null, errors = 0, scrapeInterval = 60, verdict: v }) {
+  if (v?.status === 'blocked') {
+    return [
+      MARKER,
+      '## ❌ Cardinality Diff',
+      '',
+      '**Could not compare these scrapes.** No series delta or cost estimate is shown because a scrape is missing, unreadable or incomplete:',
+      '',
+      ...v.blockers.flatMap((b) => [`> [!CAUTION]\n> ${b}`, '']),
+      'Check that both files are complete Prometheus text or OpenMetrics `/metrics` responses from a healthy service (not an error page or a cut-off download).',
+    ].join('\n')
+  }
   const cost = monthlyCost(d.delta, multiplier, pricePer1k, scrapeInterval)
   const over = failAbove !== null && d.delta > failAbove
+  const notes = v ? v.warnings : errors ? [`${errors} malformed line(s) were skipped while parsing.`] : []
+  const unsure = !!v && v.status !== 'ok'
   const changed = d.rows.filter((r) => r.status !== 'unchanged')
   const bad = risks.filter((r) => r.severity === 'bad')
   const code = (/** @type {string} */ s) => '`' + s.replace(/`/g, "'").replace(/\|/g, '\\|') + '`'
-  const icon = over || bad.some((r) => r.isNew) ? '🔴' : d.delta > 0 || risks.length ? '🟠' : '🟢'
+  const icon = over || bad.some((r) => r.isNew) ? '🔴' : d.delta > 0 || risks.length || unsure ? '🟠' : '🟢'
   const lines = [
     MARKER,
     `## ${icon} Cardinality Diff`,
     '',
     `**${signed(d.delta)} active series** per target (${fmt(d.base)} → ${fmt(d.head)}, ${pct(d.base ? (d.delta / d.base) * 100 : null)})` +
       ` · **${usd(cost, true)}/month** at ${multiplier}× targets and $${pricePer1k.toFixed(2)}/1k series` +
-      (dpmFactor(scrapeInterval) > 1 ? `, ${scrapeInterval}s scrape (${fmt(dpmFactor(scrapeInterval))} DPM)` : ''),
+      (dpmFactor(scrapeInterval) > 1 ? `, ${scrapeInterval}s scrape (${fmt(dpmFactor(scrapeInterval))} DPM)` : '') +
+      (unsure ? ` · _${v.status === 'confirm' ? 'unconfirmed' : 'incomplete'}_` : ''),
   ]
   if (over) lines.push('', `> [!CAUTION]\n> Series delta ${signed(d.delta)} exceeds the configured threshold of ${fmt(failAbove ?? 0)}.`)
-  if (errors) lines.push('', `> [!WARNING]\n> ${errors} malformed line(s) were skipped while parsing.`)
+  for (const n of notes) lines.push('', `> [!WARNING]\n> ${n}`)
   if (changed.length) {
     lines.push('', '| Metric | Type | Base | Head | Δ series | Δ $/month | Note |', '|---|---|--:|--:|--:|--:|---|')
     for (const r of changed.slice(0, 10)) {

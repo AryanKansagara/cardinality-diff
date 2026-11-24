@@ -185,7 +185,149 @@ test.describe('unreadable or wrong-format files', () => {
     await headBox(page).fill('')
     await baseBox(page).fill('')
     await expect(page.getByText('Parsed cleanly')).toHaveCount(0)
-    await expect(page.getByText('No metric families changed.')).toBeVisible()
+    // Two empty scrapes are not "no change": there is nothing to compare, and no result is shown.
+    await expect(page.getByRole('alert')).toContainText('Could not compare these scrapes')
+    await expect(page.getByText('No metric families changed.')).toHaveCount(0)
+    await expect(stat(page, 'Series delta')).toHaveCount(0)
+  })
+})
+
+// A scrape that is unreadable, empty or provably incomplete must never produce a delta, savings or a green result.
+test.describe('unreadable, empty and incomplete scrapes never look like a result', () => {
+  const alert = (page: Page) => page.getByRole('alert')
+  const noResultShown = async (page: Page) => {
+    await expect(alert(page)).toContainText('Could not compare these scrapes')
+    await expect(alert(page)).toContainText('No series delta, savings or cost is shown')
+    for (const label of ['Series per target', 'Series delta', 'Monthly cost delta']) await expect(stat(page, label)).toHaveCount(0)
+    await expect(page.locator('.stat.good, .finding.good')).toHaveCount(0)
+    await expect(page.locator('table')).toHaveCount(0)
+    await expect(page.getByText('Largest metric families')).toHaveCount(0)
+  }
+  const files: Array<[string, string]> = [
+    ['JSON', '{"status":"success"}'],
+    ['an HTML error page', '<html><body>502 Bad Gateway</body></html>'],
+    ['plain prose', 'service unavailable, retry later'],
+  ]
+  for (const [label, text] of files) {
+    test(`${label} as head: explicit "could not compare" state, no savings`, async ({ page }) => {
+      await openDiff(page)
+      await headBox(page).fill(text)
+      await noResultShown(page)
+      await expect(alert(page)).toContainText('The head scrape cannot be used: no metric families could be parsed')
+      await page.getByRole('button', { name: 'Copy PR comment' }).click()
+      const md = await page.evaluate(() => navigator.clipboard.readText())
+      expect(md).toContain('## ❌ Cardinality Diff')
+      expect(md).not.toMatch(/🟢|active series\*\*|\/month\*\*/)
+    })
+
+    test(`${label} as base: nothing is shown as newly added`, async ({ page }) => {
+      await openDiff(page)
+      await baseBox(page).fill(text)
+      await noResultShown(page)
+      await expect(alert(page)).toContainText('The base scrape cannot be used')
+      await expect(page.locator('.badge', { hasText: 'new label' })).toHaveCount(0)
+      await expect(page.locator('.badge', { hasText: 'added' })).toHaveCount(0)
+    })
+  }
+
+  for (const side of ['base', 'head'] as const) {
+    test(`an empty ${side} is refused and points to Audit mode`, async ({ page }) => {
+      await openDiff(page)
+      await (side === 'base' ? baseBox(page) : headBox(page)).fill('')
+      await noResultShown(page)
+      await expect(alert(page)).toContainText(`The ${side} scrape cannot be used: it is empty`)
+      await expect(alert(page)).toContainText('use Audit mode')
+    })
+  }
+
+  test('an OpenMetrics scrape without # EOF is incomplete; the same scrape with it is read normally', async ({ page }) => {
+    const om = '# TYPE shop_up gauge\n# TYPE shop_build info\nshop_build_info{version="1"} 1\nshop_up 1\n'
+    await openDiff(page)
+    await headBox(page).fill(om)
+    const panel = page.locator('.panel', { has: headBox(page) })
+    await expect(panel.locator('.badge.bad')).toHaveText('Incomplete: no # EOF')
+    await expect(panel.getByText('Parsed cleanly')).toHaveCount(0)
+    await noResultShown(page)
+    await expect(alert(page)).toContainText('without its required "# EOF" line')
+
+    await headBox(page).fill(om + '# EOF\n')
+    await expect(panel.getByText('Parsed cleanly')).toBeVisible()
+    await expect(alert(page)).toHaveCount(0)
+    await expect(stat(page, 'Series per target')).toContainText('3 → 2')
+  })
+
+  test('a text-format scrape cut at a line boundary: the reduction is shown but unconfirmed, not green', async ({ page }) => {
+    await openDiff(page)
+    // The head scrape stops after the two counter series: 2 series left of the base's 3.
+    await baseBox(page).fill(base)
+    await headBox(page).fill(base.split('\n').slice(0, 4).join('\n') + '\n')
+    const note = page.locator('.finding.warn', { hasText: 'Unconfirmed reduction' })
+    await expect(note).toContainText('Active series went down by 1 per target')
+    await expect(note).toContainText('the Prometheus text format has no end marker')
+    await expect(stat(page, 'Series delta')).toContainText('−1')
+    await expect(stat(page, 'Series delta')).toContainText('unconfirmed')
+    await expect(stat(page, 'Series delta')).toHaveClass(/warn/)
+    await expect(stat(page, 'Monthly cost delta')).toHaveClass(/warn/)
+    await expect(stat(page, 'Series delta')).not.toHaveClass(/good/)
+    await page.getByRole('button', { name: 'Copy PR comment' }).click()
+    const md = await page.evaluate(() => navigator.clipboard.readText())
+    expect(md).toContain('## 🟠 Cardinality Diff')
+    expect(md).toContain('_unconfirmed_')
+    expect(md).not.toContain('🟢')
+  })
+
+  test('a legitimately removed family still reports its reduction', async ({ page }) => {
+    await openDiff(page)
+    await headBox(page).fill(base.replace('# TYPE shop_up gauge\nshop_up 1\n', ''))
+    await expect(stat(page, 'Series delta')).toContainText('−1')
+    const row = page.locator('tbody tr', { hasText: 'shop_up' })
+    await expect(row).toContainText('removed')
+    await expect(row.locator('td').nth(4)).toHaveText('−1')
+    await expect(page.locator('.finding.warn', { hasText: 'Unconfirmed reduction' })).toBeVisible()
+  })
+
+  test('a reduction in a complete OpenMetrics scrape (ends with # EOF) is trusted and green', async ({ page }) => {
+    const om = (n: number) => `# TYPE shop_requests counter\n${Array.from({ length: n }, (_, i) => `shop_requests_total{route="/r${i}"} 1`).join('\n')}\n# EOF\n`
+    await openDiff(page)
+    await baseBox(page).fill(om(5))
+    await headBox(page).fill(om(3))
+    await expect(stat(page, 'Series delta')).toContainText('−2')
+    await expect(stat(page, 'Series delta')).toHaveClass(/good/)
+    await expect(page.getByText('Unconfirmed reduction')).toHaveCount(0)
+  })
+
+  test('a few malformed lines keep the delta but mark the result incomplete and not green', async ({ page }) => {
+    await openDiff(page)
+    await headBox(page).fill(head + 'this is not a metric\n')
+    await expect(stat(page, 'Series delta')).toContainText('+58')
+    await expect(stat(page, 'Series delta')).toContainText('incomplete')
+    await expect(page.locator('.finding.warn', { hasText: 'Incomplete result' })).toContainText('1 malformed line was skipped')
+    // Same data without the bad line is unchanged (and the reduction case above is the only green-to-orange move).
+    await headBox(page).fill(base + 'bad line\n')
+    await expect(stat(page, 'Series delta')).toContainText('±0')
+    await expect(stat(page, 'Series delta')).not.toHaveClass(/good/)
+    await expect(page.locator('.finding.good')).toHaveCount(0)
+    await page.getByRole('button', { name: 'Copy PR comment' }).click()
+    const md = await page.evaluate(() => navigator.clipboard.readText())
+    expect(md).toContain('## 🟠 Cardinality Diff')
+    expect(md).toContain('**Incomplete result.**')
+    expect(md).not.toContain('🟢')
+  })
+
+  test('audit mode refuses an empty, unreadable or truncated scrape too', async ({ page }) => {
+    await page.goto('/app')
+    await page.getByRole('tab', { name: /Audit/ }).click()
+    const box = page.getByLabel('Scrape metrics')
+    for (const text of ['', '{"status":"success"}', '# TYPE b info\nb_info 1\n']) {
+      await box.fill(text)
+      await expect(alert(page)).toContainText('Could not read this scrape')
+      await expect(alert(page)).toContainText('The pasted scrape cannot be used')
+      await expect(stat(page, 'Active series per target')).toHaveCount(0)
+      await expect(stat(page, 'Estimated monthly cost')).toHaveCount(0)
+    }
+    await box.fill(head)
+    await expect(alert(page)).toHaveCount(0)
+    await expect(stat(page, 'Active series per target')).toContainText('61')
   })
 })
 

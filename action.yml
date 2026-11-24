@@ -21,16 +21,21 @@ inputs:
     description: Scrape interval in seconds. Grafana Cloud includes 1 data point per minute per series, so 15 bills each series as 4.
     default: '60'
   fail-above:
-    description: Fail the step when the per-target series delta exceeds this number. Empty disables.
+    description: Fail the step when the per-target series delta exceeds this number. Empty disables. An empty, unreadable or truncated scrape always fails the step, with or without this.
     default: ''
+  allow-empty-base:
+    description: 'Set to "true" to accept an empty base scrape (for example the first run, before any base exists), counting every metric family as new. Off by default: an empty base fails the step. An unreadable or truncated base always fails, and an empty head is never accepted.'
+    default: 'false'
   github-token:
     description: Token used to create or update the pull request comment.
     default: ${{ github.token }}
 outputs:
   series-delta:
-    description: Change in active series per target (head minus base).
+    description: Change in active series per target (head minus base). Not set when a scrape could not be used.
   cost-delta:
-    description: Change in estimated monthly cost in USD (series delta x multiplier x price).
+    description: Change in estimated monthly cost in USD (series delta x multiplier x price). Not set when a scrape could not be used.
+  status:
+    description: 'ok, confirm (series went down and the head cannot be proven complete), incomplete (malformed lines were skipped), or blocked (a scrape is empty, unreadable or truncated; the step fails).'
 runs:
   using: node20
   main: action/index.js
